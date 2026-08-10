@@ -1,0 +1,54 @@
+---
+import TopNav from '../components/Header.astro';
+import SideNav from '../components/Sidevar.astro';
+import Map from '../components/map.astro';
+import '../styles/global.css';
+
+interface Props {
+  title?: string;
+  activeNav?: string;
+  activeTopLink?: 'explore' | 'community';
+}
+
+const {
+  title = 'VoyagerElite',
+  activeNav,
+  activeTopLink,
+} = Astro.props;
+---
+
+<!doctype html>
+<html lang="es" class="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{title}</title>
+
+    <!-- Fuentes -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+
+  <body class="font-body-md text-body-md">
+    <TopNav activeLink={activeTopLink} />
+    <SideNav activeItem={activeNav} />
+
+    <!--
+      Área de contenido principal.
+      pl-[280px] = ancho del SideNav
+      pt-20      = altura del TopNav (80px = h-20)
+    -->
+    <main class="pl-[280px] pt-20 h-screen flex overflow-hidden">
+      <div class="map-flex-wrapper">
+        <Map />
+      </div>
+
+    </main>
+  </body>
+</html>

@@ -1,0 +1,176 @@
+---
+// SideNav.astro
+interface NavItem {
+  icon: string;
+  label: string;
+  href: string;
+  id: string;
+}
+
+interface Props {
+  activeItem?: string;
+  tripName?: string;
+  tripSubtitle?: string;
+}
+
+const {
+  activeItem = 'itineraries',
+} = Astro.props;
+
+const navItems: NavItem[] = [
+  { id: 'itineraries', icon: 'event_note',  label: 'Itineraries', href: '/itineraries' },
+  { id: 'stays',       icon: 'hotel',       label: 'Stays',       href: '/stays' },
+  { id: 'expenses',    icon: 'payments',    label: 'Expenses',    href: '/expenses' },
+  { id: 'explore',     icon: 'explore',     label: 'Explore',     href: '/explore' },
+];
+---
+
+<aside class="sidenav">
+  <!-- Trip header -->
+
+
+  <!-- Navigation items -->
+  <nav class="sidenav__nav" aria-label="Main navigation">
+    {navItems.map((item) => (
+      <a
+        href={item.href}
+        class:list={[
+          'sidenav__item',
+          { 'sidenav__item--active': item.id === activeItem },
+        ]}
+        aria-current={item.id === activeItem ? 'page' : undefined}
+      >
+        <span class="material-symbols-outlined sidenav__item-icon">{item.icon}</span>
+        <span class="sidenav__item-label">{item.label}</span>
+      </a>
+    ))}
+  </nav>
+
+</aside>
+
+<style>
+  .sidenav {
+    position: fixed;
+    left: 0;
+    top: 0;
+    height: 100%;
+    width: 280px;
+    z-index: 40;
+    background-color: #f3faff;
+    border-right: 1px solid rgba(191, 200, 203, 0.3);
+    display: flex;
+    flex-direction: column;
+    padding: 8px 16px;
+    padding-top: 96px; /* below TopNav (80px header + 16px) */
+  }
+
+  /* ── Header ── */
+  .sidenav__header {
+    margin-bottom: 2rem;
+    padding-inline: 1rem;
+  }
+
+  .sidenav__trip-name {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 24px;
+    font-weight: 600;
+    line-height: 1.4;
+    color: #004451;
+    margin: 0 0 0.25rem;
+  }
+
+  .sidenav__trip-subtitle {
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    color: #3f484b;
+    opacity: 0.7;
+    margin: 0;
+  }
+
+  /* ── Nav items ── */
+  .sidenav__nav {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .sidenav__item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.75rem 1rem;
+    border-radius: 0.75rem;
+    text-decoration: none;
+    color: #3f484b;
+    transition: background-color 0.2s, color 0.2s, transform 0.15s;
+  }
+
+  .sidenav__item:hover {
+    background-color: #ccedfe;
+  }
+
+  .sidenav__item--active {
+    color: #004451;
+    background-color: rgba(0, 93, 110, 0.1);
+    font-weight: 700;
+    transform: translateX(4px);
+  }
+
+  .sidenav__item-icon {
+    font-size: 24px;
+    flex-shrink: 0;
+  }
+
+  .sidenav__item-label {
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+  }
+
+  /* ── Pro card ── */
+  .sidenav__pro-card {
+    margin-top: auto;
+    padding: 1rem;
+    background-color: #005d6e;
+    color: #8fd4e7;
+    border-radius: 1rem;
+  }
+
+  .sidenav__pro-eyebrow {
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    opacity: 0.8;
+    margin: 0 0 0.5rem;
+    letter-spacing: 0.05em;
+  }
+
+  .sidenav__pro-title {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    margin: 0 0 1rem;
+    color: #8fd4e7;
+  }
+
+  .sidenav__pro-btn {
+    width: 100%;
+    background-color: #8fd4e7;
+    color: #004451;
+    border: none;
+    border-radius: 0.5rem;
+    padding: 0.5rem;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+
+  .sidenav__pro-btn:hover {
+    opacity: 0.9;
+  }
+</style>

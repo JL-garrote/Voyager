@@ -1,0 +1,1117 @@
+---
+// components/map.astro
+// Mapa interactivo con marcadores y rutas para VoyagerElite
+// + Búsqueda de ruta punto A → punto B con duración estimada
+// + Menú ocultable con formulario de datos del coche (solo UI, sin
+//   backend todavía; la integración con Gemini se hará después)
+
+interface Stop {
+  id: string;
+  label: string;
+  lat: number;
+  lng: number;
+  icon: 'flight' | 'hotel' | 'restaurant' | 'tour' | 'default';
+  time?: string;
+}
+
+interface Props {
+  apiKey?: string;
+  stops?: Stop[];
+  dayLabel?: string;
+  totalDistance?: string;
+}
+
+const {
+  apiKey = import.meta.env.PUBLIC_GOOGLE_MAPS_API_KEY,
+  stops = [],
+  dayLabel = 'Day 01',
+  totalDistance = '—',
+} = Astro.props;
+
+if (!apiKey) {
+  throw new Error(
+    'Falta la API key de Google Maps. Define PUBLIC_GOOGLE_MAPS_API_KEY en tu archivo .env',
+  );
+}
+
+// Serializar stops para pasarlos al script cliente
+const stopsJson = JSON.stringify(stops);
+---
+
+<!-- Map wrapper -->
+<div class="map-root">
+
+  <!-- Controles zoom -->
+  <div class="map-controls">
+    <div class="map-zoom">
+      <button id="zoom-in"  class="map-zoom__btn" aria-label="Zoom in">
+        <span class="material-symbols-outlined">add</span>
+      </button>
+      <hr class="map-zoom__divider" />
+      <button id="zoom-out" class="map-zoom__btn" aria-label="Zoom out">
+        <span class="material-symbols-outlined">remove</span>
+      </button>
+    </div>
+    <button id="my-location" class="map-zoom map-zoom--icon" aria-label="My location">
+      <span class="material-symbols-outlined">my_location</span>
+    </button>
+  </div>
+
+  <!-- Pill superior -->
+  <div class="map-pill">
+    <div class="map-pill__day">
+      <span class="map-pill__dot"></span>
+      <span class="map-pill__label">{dayLabel} Selected</span>
+    </div>
+    <div class="map-pill__divider"></div>
+    <p class="map-pill__meta" id="stops-meta">
+      {stops.length} Stops • {totalDistance}
+    </p>
+  </div>
+
+  <!-- ── Panel de búsqueda A → B ─────────────────────────────────── -->
+  <div class="route-search">
+    <button id="route-search-toggle" class="route-search__toggle" aria-label="Buscar ruta">
+      <span class="material-symbols-outlined">route</span>
+      <span>Buscar ruta</span>
+      <span class="material-symbols-outlined route-search__chevron" id="route-search-chevron">expand_more</span>
+    </button>
+
+    <div id="route-search-panel" class="route-search__panel route-search__panel--hidden">
+      <label class="route-search__label">
+        Origen
+        <input id="route-origin" type="text" placeholder="Punto de partida" class="route-search__input" />
+      </label>
+      <label class="route-search__label">
+        Destino
+        <input id="route-destination" type="text" placeholder="Punto de llegada" class="route-search__input" />
+      </label>
+      <button id="route-search-submit" class="route-search__submit">Calcular ruta</button>
+
+      <div id="route-result" class="route-result route-result--hidden">
+        <div class="route-result__row">
+          <span class="material-symbols-outlined">schedule</span>
+          <span id="route-result-duration">—</span>
+        </div>
+        <div class="route-result__row">
+          <span class="material-symbols-outlined">social_distance</span>
+          <span id="route-result-distance">—</span>
+        </div>
+      </div>
+      <p id="route-error" class="route-error route-error--hidden"></p>
+    </div>
+  </div>
+
+  <!-- ── Menú ocultable: datos del coche ─────────────────────────── -->
+  <div class="car-panel">
+    <button id="car-panel-toggle" class="car-panel__toggle" aria-label="Datos del coche">
+      <span class="material-symbols-outlined">directions_car</span>
+      <span>Datos del coche</span>
+      <span class="material-symbols-outlined car-panel__chevron" id="car-panel-chevron">expand_more</span>
+    </button>
+
+    <form id="car-form" class="car-panel__form car-panel__form--hidden">
+      <div class="car-panel__row">
+        <label class="car-panel__label">
+          Marca
+          <input type="text" id="car-make" placeholder="Seat" />
+        </label>
+        <label class="car-panel__label">
+          Modelo
+          <input type="text" id="car-model" placeholder="León" />
+        </label>
+      </div>
+
+      <div class="car-panel__row">
+        <label class="car-panel__label">
+          Año
+          <input type="text" id="car-year" placeholder="2019" />
+        </label>
+        <label class="car-panel__label">
+          Versión / acabado
+          <input type="text" id="car-trim" placeholder="FR 1.5 TSI" />
+        </label>
+      </div>
+
+      <div class="car-panel__row">
+        <label class="car-panel__label">
+          Tipo de combustible
+          <select id="car-fuel-type">
+            <option value="gasolina">Gasolina</option>
+            <option value="diesel">Diésel</option>
+            <option value="hibrido">Híbrido</option>
+            <option value="hibrido-enchufable">Híbrido enchufable</option>
+            <option value="electrico">Eléctrico</option>
+            <option value="glp">GLP / Autogas</option>
+          </select>
+        </label>
+        <label class="car-panel__label">
+          Transmisión
+          <select id="car-transmission">
+            <option value="manual">Manual</option>
+            <option value="automatica">Automática</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="car-panel__row">
+        <label class="car-panel__label">
+          Cilindrada (cc)
+          <input type="number" id="car-displacement" placeholder="1498" />
+        </label>
+        <label class="car-panel__label">
+          Potencia (CV)
+          <input type="number" id="car-power" placeholder="150" />
+        </label>
+      </div>
+
+      <div class="car-panel__row">
+        <label class="car-panel__label">
+          Peso (kg)
+          <input type="number" id="car-weight" placeholder="1320" />
+        </label>
+        <label class="car-panel__label">
+          Nº de ocupantes habitual
+          <input type="number" id="car-occupants" placeholder="2" min="1" max="9" />
+        </label>
+      </div>
+
+      <label class="car-panel__label">
+        Consumo conocido (L/100km, opcional)
+        <input type="number" id="car-known-consumption" placeholder="Déjalo vacío si no lo sabes" step="0.1" />
+      </label>
+
+      <label class="car-panel__label">
+        Tipo de neumáticos
+        <select id="car-tires">
+          <option value="verano">Verano</option>
+          <option value="invierno">Invierno</option>
+          <option value="todo-tiempo">Todo tiempo (all-season)</option>
+        </select>
+      </label>
+
+      <label class="car-panel__label">
+        Notas adicionales (carga, portaequipajes, remolque, etc.)
+        <textarea id="car-notes" rows="2" placeholder="Ej: con baca puesta, maletero cargado..."></textarea>
+      </label>
+
+      <!--
+        Este formulario aún NO envía datos a ningún backend/IA.
+        Es solo la interfaz; la lógica de cálculo (con Gemini) se
+        conectará en un paso posterior.
+      -->
+      <button type="button" id="car-form-save" class="car-panel__submit">
+        Guardar datos del coche
+      </button>
+    </form>
+  </div>
+
+  <!-- Canvas del mapa -->
+  <div id="gmap" class="map-canvas"></div>
+
+  <!-- Tarjeta flotante del marcador seleccionado -->
+  <div id="marker-card" class="marker-card marker-card--hidden">
+    <div class="marker-card__img-wrap">
+      <img id="mc-img" src="" alt="" class="marker-card__img" />
+    </div>
+    <div class="marker-card__body">
+      <div class="marker-card__top">
+        <div>
+          <h5 id="mc-title" class="marker-card__title"></h5>
+          <p  id="mc-sub"   class="marker-card__sub"></p>
+        </div>
+        <button id="mc-directions" class="marker-card__dir-btn" aria-label="Get directions">
+          <span class="material-symbols-outlined">directions</span>
+        </button>
+      </div>
+      <div id="mc-tags" class="marker-card__tags"></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ─── Estilos ──────────────────────────────────────────────────── -->
+<style>
+  /* Box-sizing global para todo el componente: evita que paddings y
+     bordes hagan que inputs/selects se salgan de su columna flex y
+     se corten contra el overflow:hidden del contenedor del mapa. */
+  .map-root, .map-root * {
+    box-sizing: border-box;
+  }
+
+  .map-root {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    background-color: #bedfef;
+    overflow: hidden;
+  }
+
+  /* Canvas */
+  .map-canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    /* Fuerza su propia capa de composición GPU. Sin esto, los
+       paneles con backdrop-filter que flotan encima provocan un
+       bug de renderizado de Chromium: aparecen líneas/costuras
+       fantasma sobre el mapa que desaparecen solas al abrir las
+       DevTools (porque eso fuerza un repintado). Aislar el mapa en
+       su propia capa evita que ese repintado sea necesario. */
+    transform: translateZ(0);
+    will-change: transform;
+  }
+
+  /* Controles zoom */
+  .map-controls {
+    position: absolute;
+    top: 24px;
+    left: 24px;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .map-zoom {
+    background: rgba(255,255,255,0.9);
+    backdrop-filter: blur(8px);
+    transform: translateZ(0);
+    will-change: transform;
+    border: 1px solid rgba(191,200,203,0.2);
+    border-radius: 12px;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  }
+
+  .map-zoom--icon {
+    flex-direction: row;
+    justify-content: center;
+    padding: 12px;
+  }
+
+  .map-zoom__btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px;
+    background: none;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    color: #004451;
+    transition: background-color 0.2s;
+  }
+
+  .map-zoom__btn:hover { background-color: #ccedfe; }
+
+  .map-zoom__divider {
+    border: none;
+    border-top: 1px solid rgba(191,200,203,0.3);
+    margin: 0;
+  }
+
+  /* Pill superior */
+  .map-pill {
+    position: absolute;
+    top: 24px;
+    right: 24px;
+    z-index: 10;
+    background: rgba(255,255,255,0.9);
+    backdrop-filter: blur(8px);
+    transform: translateZ(0);
+    will-change: transform;
+    border: 1px solid rgba(191,200,203,0.2);
+    border-radius: 9999px;
+    padding: 12px 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    max-width: calc(100% - 48px);
+  }
+
+  .map-pill__day  { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+  .map-pill__dot  { width: 12px; height: 12px; border-radius: 50%; background-color: #004451; flex-shrink: 0; }
+
+  .map-pill__label {
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: #001f29;
+    white-space: nowrap;
+  }
+
+  .map-pill__divider {
+    width: 1px;
+    height: 16px;
+    background-color: #bfc8cb;
+    flex-shrink: 0;
+  }
+
+  .map-pill__meta {
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    color: #3f484b;
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* ── Panel de búsqueda de ruta ────────────────────────────────── */
+  .route-search {
+    position: absolute;
+    top: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 15;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    width: 320px;
+    max-width: calc(100% - 48px);
+  }
+
+  .route-search__toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255,255,255,0.9);
+    backdrop-filter: blur(8px);
+    transform: translateZ(0);
+    border: 1px solid rgba(191,200,203,0.2);
+    border-radius: 9999px;
+    padding: 10px 16px;
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: #004451;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    width: 100%;
+  }
+
+  .route-search__toggle span:nth-child(2) { flex: 1; text-align: left; }
+
+  .route-search__chevron { transition: transform 0.2s; flex-shrink: 0; }
+  .route-search__chevron--open { transform: rotate(180deg); }
+
+  .route-search__panel {
+    margin-top: 8px;
+    background: rgba(255,255,255,0.95);
+    backdrop-filter: blur(8px);
+    transform: translateZ(0);
+    border: 1px solid rgba(191,200,203,0.2);
+    border-radius: 16px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+    width: 100%;
+  }
+
+  .route-search__panel--hidden { display: none; }
+
+  .route-search__label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    color: #3f484b;
+    width: 100%;
+  }
+
+  .route-search__input {
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    padding: 8px 10px;
+    border: 1px solid #bfc8cb;
+    border-radius: 8px;
+    color: #001f29;
+    width: 100%;
+  }
+
+  .route-search__submit {
+    margin-top: 4px;
+    padding: 10px;
+    background-color: #004451;
+    color: #ffffff;
+    border: none;
+    border-radius: 9999px;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    width: 100%;
+  }
+  .route-search__submit:hover { background-color: #005d6e; }
+
+  .route-result {
+    margin-top: 4px;
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .route-result--hidden { display: none; }
+  .route-result__row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: #004451;
+  }
+
+  .route-error {
+    color: #ba1a1a;
+    font-size: 12px;
+    margin: 0;
+  }
+  .route-error--hidden { display: none; }
+
+  /* ── Panel ocultable de datos del coche ──────────────────────── */
+  .car-panel {
+    position: absolute;
+    bottom: 24px;
+    left: 24px;
+    z-index: 15;
+    width: 320px;
+    /* Nunca más ancho que el viewport disponible del mapa */
+    max-width: calc(100% - 48px);
+    max-height: calc(100% - 48px);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .car-panel__toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255,255,255,0.9);
+    backdrop-filter: blur(8px);
+    transform: translateZ(0);
+    will-change: transform;
+    border: 1px solid rgba(191,200,203,0.2);
+    border-radius: 9999px;
+    padding: 10px 16px;
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: #004451;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    width: 100%;
+    flex-shrink: 0;
+  }
+
+  .car-panel__toggle span:nth-child(2) { flex: 1; text-align: left; }
+
+  .car-panel__chevron { transition: transform 0.2s; flex-shrink: 0; }
+  .car-panel__chevron--open { transform: rotate(180deg); }
+
+  .car-panel__form {
+    margin-top: 8px;
+    background: rgba(255,255,255,0.95);
+    backdrop-filter: blur(8px);
+    transform: translateZ(0);
+    will-change: transform;
+    border: 1px solid rgba(191,200,203,0.2);
+    border-radius: 16px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+    width: 100%;
+    min-height: 0;
+  }
+
+  .car-panel__form--hidden { display: none; }
+
+  .car-panel__row {
+    display: flex;
+    gap: 10px;
+    width: 100%;
+  }
+
+  /* min-width: 0 es la clave: sin esto, los hijos flex nunca se
+     encogen por debajo de su contenido "natural" (el ancho del
+     placeholder/texto) y acaban desbordando la columna. */
+  .car-panel__row .car-panel__label {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  .car-panel__label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    color: #3f484b;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .car-panel__label input,
+  .car-panel__label select,
+  .car-panel__label textarea {
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 400;
+    color: #001f29;
+    padding: 8px 10px;
+    border: 1px solid #bfc8cb;
+    border-radius: 8px;
+    resize: vertical;
+    width: 100%;
+    min-width: 0;
+  }
+
+  /* Los <select> con opciones largas pueden imponer un ancho mínimo
+     mayor que el contenedor; forzamos que respeten la columna. */
+  .car-panel__label select {
+    max-width: 100%;
+  }
+
+  .car-panel__submit {
+    margin-top: 4px;
+    padding: 10px;
+    background-color: #004451;
+    color: #ffffff;
+    border: none;
+    border-radius: 9999px;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    width: 100%;
+    flex-shrink: 0;
+  }
+  .car-panel__submit:hover { background-color: #005d6e; }
+
+  /* Tarjeta flotante */
+  .marker-card {
+    position: absolute;
+    bottom: 40px;
+    left: 50%;
+    transform: translateX(-50%) translateZ(0);
+    will-change: transform;
+    width: 400px;
+    max-width: calc(100% - 48px);
+    background: rgba(243,250,255,0.85);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255,255,255,0.4);
+    border-radius: 24px;
+    padding: 24px;
+    box-shadow: 0 8px 32px rgba(0,93,110,0.12);
+    z-index: 20;
+    display: flex;
+    gap: 16px;
+    transition: opacity 0.25s, transform 0.25s;
+  }
+
+  .marker-card--hidden {
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(-50%) translateY(12px) translateZ(0);
+  }
+
+  .marker-card__img-wrap {
+    width: 96px;
+    height: 96px;
+    border-radius: 16px;
+    overflow: hidden;
+    flex-shrink: 0;
+    background-color: #d8f2ff;
+  }
+
+  .marker-card__img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .marker-card__body { flex: 1; min-width: 0; }
+
+  .marker-card__top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .marker-card__title {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    color: #004451;
+    margin: 0 0 4px;
+  }
+
+  .marker-card__sub {
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    color: #3f484b;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin: 0;
+  }
+
+  .marker-card__dir-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+    background-color: rgba(0,68,81,0.1);
+    color: #004451;
+    transition: background-color 0.2s, color 0.2s;
+    flex-shrink: 0;
+  }
+
+  .marker-card__dir-btn:hover {
+    background-color: #004451;
+    color: #ffffff;
+  }
+
+  .marker-card__tags {
+    margin-top: 12px;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .marker-card__tag {
+    background-color: #ccedfe;
+    color: #001f29;
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 12px;
+    border-radius: 9999px;
+  }
+
+  /* ── Responsive: pantallas estrechas (móvil) ──────────────────── */
+  @media (max-width: 480px) {
+    .route-search,
+    .car-panel {
+      width: calc(100% - 32px);
+    }
+
+    .map-controls,
+    .route-search,
+    .car-panel {
+      left: 16px;
+    }
+
+    .car-panel,
+    .route-search {
+      right: 16px;
+    }
+
+    .map-pill {
+      right: 16px;
+      padding: 10px 16px;
+    }
+
+    .car-panel__row {
+      flex-direction: column;
+    }
+
+    .marker-card {
+      width: calc(100% - 32px);
+      flex-direction: column;
+    }
+  }
+</style>
+
+<!-- ─── Script cliente ────────────────────────────────────────────── -->
+<script define:vars={{ apiKey, stopsJson, stops }}>
+
+// ── Tipos de icono → emoji SVG inline como Data URI ──────────────
+const ICON_MAP = {
+  flight:     { color: '#004451', symbol: 'flight' },
+  hotel:      { color: '#004451', symbol: 'hotel' },
+  restaurant: { color: '#004451', symbol: 'restaurant' },
+  tour:       { color: '#004451', symbol: 'tour' },
+  default:    { color: '#004451', symbol: 'place' },
+};
+
+function makePinSvg(symbol) {
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
+    <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40">
+      <circle cx="20" cy="20" r="18" fill="#004451" stroke="white" stroke-width="3"/>
+    </svg>
+  `)}`;
+}
+
+// ── Inicializar mapa cuando carga la API ──────────────────────────
+window.__initVoyagerMap = function () {
+  const parsedStops = JSON.parse(stopsJson);
+
+  const center = parsedStops.length
+    ? { lat: parsedStops[0].lat, lng: parsedStops[0].lng }
+    : { lat: 48.8566, lng: 2.3522 };
+
+  const map = new google.maps.Map(document.getElementById('gmap'), {
+    center,
+    zoom: 13,
+    disableDefaultUI: true,
+    gestureHandling: 'greedy',
+    // Fuerza el renderizador clásico (raster) en vez del vectorial
+    // (WebGL). El renderizador vectorial es el que produce esas
+    // líneas grises "seam" independientes del contenido/ubicación
+    // en ciertos navegadores/GPU; con raster desaparecen porque deja
+    // de usarse WebGL para pintar el mapa.
+    renderingType: google.maps.RenderingType.RASTER,
+    styles: [
+      { elementType: 'geometry',        stylers: [{ color: '#dff4ff' }] },
+      { elementType: 'labels.text.fill',stylers: [{ color: '#3f484b' }] },
+      // Oculta el icono/marcador que Google dibuja pegado a cada
+      // etiqueta de población (esa rayita que aparecía junto a
+      // "Villanueva del Río y Minas", "Aldea de Tujena", "Alpizar"...
+      // se repetía en cada localidad visible: es el "labels.icon",
+      // no una vía ni un límite). El texto de las etiquetas se
+      // mantiene intacto.
+      { elementType: 'labels.icon',     stylers: [{ visibility: 'off' }] },
+      { featureType: 'water',           elementType: 'geometry', stylers: [{ color: '#bedfef' }] },
+      // Las "rayas" eran el contorno (orillas) de ríos/lagos: se
+      // veían como líneas porque el trazo del borde del agua
+      // contrastaba con el fondo. Quitamos solo el contorno; el
+      // relleno azul del agua se mantiene igual.
+      { featureType: 'water',           elementType: 'geometry.stroke', stylers: [{ visibility: 'off' }] },
+      { featureType: 'road',            elementType: 'geometry', stylers: [{ color: '#ffffff' }] },
+      { featureType: 'road',            elementType: 'geometry.stroke', stylers: [{ color: '#c6e8f8' }] },
+      { featureType: 'poi',             stylers: [{ visibility: 'off' }] },
+      { featureType: 'transit',         stylers: [{ visibility: 'off' }] },
+      // Las rayas no se movían al hacer zoom/pan (estaban ancladas a
+      // Villanueva del Río y Minas), así que son contenido real del
+      // mapa: muy probablemente una vía de tren (hubo una línea
+      // minera en esa zona) o un límite administrativo. Los cubrimos
+      // todos explícitamente, incluidos los subtipos que 'transit' y
+      // 'administrative' genéricos a veces no heredan del todo.
+      { featureType: 'transit.line',              elementType: 'geometry', stylers: [{ visibility: 'off' }] },
+      { featureType: 'administrative',             elementType: 'geometry', stylers: [{ visibility: 'off' }] },
+      { featureType: 'administrative.land_parcel', stylers: [{ visibility: 'off' }] },
+      { featureType: 'administrative.neighborhood',stylers: [{ visibility: 'off' }] },
+      { featureType: 'administrative.province',    elementType: 'geometry.stroke', stylers: [{ visibility: 'off' }] },
+    ],
+  });
+
+  // ── Corrección de costuras del mapa (resize forzado) ─────────────
+  // Fuerza a Google Maps a recalcular su tamaño y volver a pintar
+  // los tiles. Un solo intento tras el primer 'idle' no basta: si
+  // siguen llegando tiles después (conexión lenta, muchas tiles en
+  // el viewport inicial, fuentes web retrasando el layout, etc.) las
+  // costuras se quedan pintadas y nada vuelve a forzar el repintado
+  // hasta que el usuario abre DevTools (que fuerza un resize real
+  // del viewport). Por eso combinamos tres estrategias:
+  //
+  //   1. 'tilesloaded': se dispara cada vez que Maps termina de
+  //      pintar un nuevo lote de tiles visibles. Mucho más fiable
+  //      que un timeout fijo tras el primer 'idle'.
+  //   2. Reintentos con backoff (250/600/1200ms): cubren el caso de
+  //      que las fuentes web (Inter/Plus Jakarta Sans, cargadas de
+  //      forma asíncrona) terminen de aplicarse después de que el
+  //      mapa ya se considere "idle", alterando sutilmente el
+  //      layout del contenedor.
+  //   3. ResizeObserver: sigue cubriendo cambios de tamaño del
+  //      contenedor más adelante (p. ej. al abrir/cerrar paneles).
+  const fixMapSeams = () => {
+    google.maps.event.trigger(map, 'resize');
+    map.setCenter(map.getCenter());
+  };
+
+  let tilesLoadedFixes = 0;
+  const MAX_TILE_FIXES = 5;
+
+  google.maps.event.addListener(map, 'tilesloaded', () => {
+    if (tilesLoadedFixes >= MAX_TILE_FIXES) return;
+    tilesLoadedFixes += 1;
+    fixMapSeams();
+  });
+
+  [250, 600, 1200].forEach(delay => setTimeout(fixMapSeams, delay));
+
+  const gmapEl = document.getElementById('gmap');
+  if (window.ResizeObserver) {
+    const resizeObserver = new ResizeObserver(() => fixMapSeams());
+    resizeObserver.observe(gmapEl);
+  } else {
+    window.addEventListener('resize', fixMapSeams);
+  }
+
+  // ── Marcadores ───────────────────────────────────────────────────
+  const markers = parsedStops.map((stop, idx) => {
+    const marker = new google.maps.Marker({
+      position: { lat: stop.lat, lng: stop.lng },
+      map,
+      title: stop.label,
+      icon: {
+        url: makePinSvg(ICON_MAP[stop.icon]?.symbol ?? 'place'),
+        scaledSize: new google.maps.Size(40, 40),
+        anchor: new google.maps.Point(20, 20),
+      },
+      label: {
+        text: String(idx + 1),
+        color: '#ffffff',
+        fontSize: '13px',
+        fontWeight: '700',
+        fontFamily: 'Inter, sans-serif',
+      },
+      animation: google.maps.Animation.DROP,
+    });
+
+    marker.addListener('click', () => showCard(stop));
+    return marker;
+  });
+
+  // ── Ruta entre paradas del itinerario (Directions API) ──────────
+  if (parsedStops.length >= 2) {
+    const directionsService  = new google.maps.DirectionsService();
+    const directionsRenderer = new google.maps.DirectionsRenderer({
+      map,
+      suppressMarkers: true,
+      polylineOptions: {
+        strokeColor:   '#005d6e',
+        strokeOpacity: 0.7,
+        strokeWeight:  4,
+      },
+    });
+
+    const waypoints = parsedStops.slice(1, -1).map(s => ({
+      location: { lat: s.lat, lng: s.lng },
+      stopover: true,
+    }));
+
+    directionsService.route(
+      {
+        origin:      { lat: parsedStops[0].lat,                             lng: parsedStops[0].lng },
+        destination: { lat: parsedStops[parsedStops.length - 1].lat,        lng: parsedStops[parsedStops.length - 1].lng },
+        waypoints,
+        travelMode: google.maps.TravelMode.DRIVING,
+      },
+      (result, status) => {
+        if (status === 'OK') {
+          directionsRenderer.setDirections(result);
+
+          const legs        = result.routes[0].legs;
+          const totalMeters  = legs.reduce((acc, l) => acc + l.distance.value, 0);
+          const totalKm      = (totalMeters / 1000).toFixed(1);
+          document.getElementById('stops-meta').textContent =
+            `${parsedStops.length} Stops • ${totalKm} km total`;
+
+          // Compartimos la distancia con otros componentes (ej. formulario de combustible)
+          window.dispatchEvent(
+            new CustomEvent('voyager:distance-updated', { detail: { totalKm } })
+          );
+        }
+      },
+    );
+  }
+
+  // ── Tarjeta flotante ─────────────────────────────────────────────
+  function showCard(stop) {
+    const card  = document.getElementById('marker-card');
+    const img   = document.getElementById('mc-img');
+    const title = document.getElementById('mc-title');
+    const sub   = document.getElementById('mc-sub');
+    const tags  = document.getElementById('mc-tags');
+    const dirBtn = document.getElementById('mc-directions');
+
+    title.textContent = stop.label;
+    sub.textContent   = stop.time ?? '';
+    img.src           = stop.image ?? '';
+    img.alt           = stop.label;
+
+    tags.innerHTML = (stop.tags ?? [])
+      .map(t => `<span class="marker-card__tag">${t}</span>`)
+      .join('');
+
+    dirBtn.onclick = () => {
+      window.open(
+        `https://www.google.com/maps/dir/?api=1&destination=${stop.lat},${stop.lng}`,
+        '_blank',
+      );
+    };
+
+    card.classList.remove('marker-card--hidden');
+  }
+
+  map.addListener('click', () => {
+    document.getElementById('marker-card').classList.add('marker-card--hidden');
+  });
+
+  // ── Botones de zoom personalizados ───────────────────────────────
+  document.getElementById('zoom-in').addEventListener('click',  () => map.setZoom(map.getZoom() + 1));
+  document.getElementById('zoom-out').addEventListener('click', () => map.setZoom(map.getZoom() - 1));
+
+  document.getElementById('my-location').addEventListener('click', () => {
+    navigator.geolocation?.getCurrentPosition(pos => {
+      map.panTo({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+      map.setZoom(15);
+    });
+  });
+
+  // ── Autocompletado de direcciones para el buscador de ruta ──────
+  const originInput      = document.getElementById('route-origin');
+  const destinationInput = document.getElementById('route-destination');
+
+  const originAutocomplete      = new google.maps.places.Autocomplete(originInput);
+  const destinationAutocomplete = new google.maps.places.Autocomplete(destinationInput);
+
+  // ── Panel de búsqueda de ruta: toggle ────────────────────────────
+  const routePanel   = document.getElementById('route-search-panel');
+  const routeToggle  = document.getElementById('route-search-toggle');
+  const routeChevron = document.getElementById('route-search-chevron');
+
+  routeToggle.addEventListener('click', () => {
+    const isHidden = routePanel.classList.contains('route-search__panel--hidden');
+    routePanel.classList.toggle('route-search__panel--hidden');
+    routeChevron.classList.toggle('route-search__chevron--open', isHidden);
+  });
+
+  // ── Panel de búsqueda de ruta: cálculo A → B ─────────────────────
+  const routeSubmit   = document.getElementById('route-search-submit');
+  const routeResult   = document.getElementById('route-result');
+  const routeError    = document.getElementById('route-error');
+  const durationLabel = document.getElementById('route-result-duration');
+  const distanceLabel = document.getElementById('route-result-distance');
+
+  // Renderer aparte para no chocar con la ruta de paradas del itinerario
+  const searchDirectionsRenderer = new google.maps.DirectionsRenderer({
+    map,
+    suppressMarkers: false,
+    polylineOptions: {
+      strokeColor:   '#8e4e14',
+      strokeOpacity: 0.9,
+      strokeWeight:  5,
+    },
+  });
+
+  routeSubmit.addEventListener('click', () => {
+    const origin      = originInput.value.trim();
+    const destination  = destinationInput.value.trim();
+
+    routeError.classList.add('route-error--hidden');
+    routeResult.classList.add('route-result--hidden');
+
+    if (!origin || !destination) {
+      routeError.textContent = 'Introduce origen y destino.';
+      routeError.classList.remove('route-error--hidden');
+      return;
+    }
+
+    const directionsService = new google.maps.DirectionsService();
+
+    directionsService.route(
+      {
+        origin,
+        destination,
+        travelMode: google.maps.TravelMode.DRIVING,
+      },
+      (result, status) => {
+        if (status === 'OK') {
+          searchDirectionsRenderer.setDirections(result);
+
+          const leg = result.routes[0].legs[0];
+          durationLabel.textContent = leg.duration.text;
+          distanceLabel.textContent = leg.distance.text;
+          routeResult.classList.remove('route-result--hidden');
+
+          // Tras calcular una ruta, el DirectionsRenderer reencuadra
+          // el mapa (fitBounds) automáticamente. Ese cambio de
+          // zoom/centro recompone las tiles por debajo del panel
+          // "Buscar ruta", pero la capa GPU propia del panel
+          // (backdrop-filter + su box-shadow difuminado) no siempre
+          // se repinta a la vez en Chromium, y deja el contorno de
+          // la sombra "pegado" como una costura gris fantasma.
+          // Forzamos aquí un resize del mapa y un reflow real del
+          // propio panel (leyendo offsetHeight) para que el
+          // compositor vuelva a pintar ambas capas en el mismo frame.
+          requestAnimationFrame(() => {
+            fixMapSeams();
+            routeToggle.style.transform = 'translateZ(0.01px)';
+            void routeToggle.offsetHeight;
+            routeToggle.style.transform = 'translateZ(0)';
+          });
+        } else {
+          routeError.textContent = `No se pudo calcular la ruta (${status}).`;
+          routeError.classList.remove('route-error--hidden');
+        }
+      },
+    );
+  });
+
+  // ── Panel de datos del coche: toggle ─────────────────────────────
+  const carForm     = document.getElementById('car-form');
+  const carToggle   = document.getElementById('car-panel-toggle');
+  const carChevron  = document.getElementById('car-panel-chevron');
+
+  carToggle.addEventListener('click', () => {
+    const isHidden = carForm.classList.contains('car-panel__form--hidden');
+    carForm.classList.toggle('car-panel__form--hidden');
+    carChevron.classList.toggle('car-panel__chevron--open', isHidden);
+  });
+
+  // ── Guardar datos del coche (solo UI por ahora, sin backend) ─────
+  // Aquí NO se llama a ninguna IA todavía. Solo se recogen los
+  // valores del formulario para usarlos más adelante cuando se
+  // conecte la integración con Gemini.
+  const carSaveBtn = document.getElementById('car-form-save');
+  carSaveBtn.addEventListener('click', () => {
+    const carData = {
+      make:              document.getElementById('car-make').value,
+      model:             document.getElementById('car-model').value,
+      year:              document.getElementById('car-year').value,
+      trim:              document.getElementById('car-trim').value,
+      fuelType:          document.getElementById('car-fuel-type').value,
+      transmission:      document.getElementById('car-transmission').value,
+      displacementCc:    document.getElementById('car-displacement').value,
+      powerCv:           document.getElementById('car-power').value,
+      weightKg:          document.getElementById('car-weight').value,
+      occupants:         document.getElementById('car-occupants').value,
+      knownConsumption:  document.getElementById('car-known-consumption').value,
+      tires:             document.getElementById('car-tires').value,
+      notes:             document.getElementById('car-notes').value,
+    };
+
+    // Se emite un evento por si otro componente (futuro formulario
+    // de estimación con Gemini) quiere escuchar estos datos.
+    window.dispatchEvent(
+      new CustomEvent('voyager:car-data-saved', { detail: carData })
+    );
+
+    console.log('Datos del coche guardados (aún sin backend):', carData);
+  });
+};
+
+// ── Cargar SDK de Google Maps dinámicamente ──────────────────────
+(function loadGoogleMaps() {
+  if (window.google?.maps) { window.__initVoyagerMap(); return; }
+  const script   = document.createElement('script');
+  script.src     = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&callback=__initVoyagerMap&libraries=places`;
+  script.async   = true;
+  script.defer   = true;
+  document.head.appendChild(script);
+})();
+</script>
