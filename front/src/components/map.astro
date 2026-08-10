@@ -1,10 +1,4 @@
 ---
-// components/map.astro
-// Mapa interactivo con marcadores y rutas para VoyagerElite
-// + Búsqueda de ruta punto A → punto B con duración estimada
-// + Menú ocultable con formulario de datos del coche (solo UI, sin
-//   backend todavía; la integración con Gemini se hará después)
-
 interface Stop {
   id: string;
   label: string;
@@ -24,8 +18,6 @@ interface Props {
 const {
   apiKey = import.meta.env.PUBLIC_GOOGLE_MAPS_API_KEY,
   stops = [],
-  dayLabel = 'Day 01',
-  totalDistance = '—',
 } = Astro.props;
 
 if (!apiKey) {
@@ -34,14 +26,11 @@ if (!apiKey) {
   );
 }
 
-// Serializar stops para pasarlos al script cliente
 const stopsJson = JSON.stringify(stops);
 ---
-
-<!-- Map wrapper -->
 <div class="map-root">
 
-  <!-- Controles zoom -->
+
   <div class="map-controls">
     <div class="map-zoom">
       <button id="zoom-in"  class="map-zoom__btn" aria-label="Zoom in">
@@ -57,19 +46,6 @@ const stopsJson = JSON.stringify(stops);
     </button>
   </div>
 
-  <!-- Pill superior -->
-  <div class="map-pill">
-    <div class="map-pill__day">
-      <span class="map-pill__dot"></span>
-      <span class="map-pill__label">{dayLabel} Selected</span>
-    </div>
-    <div class="map-pill__divider"></div>
-    <p class="map-pill__meta" id="stops-meta">
-      {stops.length} Stops • {totalDistance}
-    </p>
-  </div>
-
-  <!-- ── Panel de búsqueda A → B ─────────────────────────────────── -->
   <div class="route-search">
     <button id="route-search-toggle" class="route-search__toggle" aria-label="Buscar ruta">
       <span class="material-symbols-outlined">route</span>
@@ -102,7 +78,6 @@ const stopsJson = JSON.stringify(stops);
     </div>
   </div>
 
-  <!-- ── Menú ocultable: datos del coche ─────────────────────────── -->
   <div class="car-panel">
     <button id="car-panel-toggle" class="car-panel__toggle" aria-label="Datos del coche">
       <span class="material-symbols-outlined">directions_car</span>
@@ -195,21 +170,14 @@ const stopsJson = JSON.stringify(stops);
         <textarea id="car-notes" rows="2" placeholder="Ej: con baca puesta, maletero cargado..."></textarea>
       </label>
 
-      <!--
-        Este formulario aún NO envía datos a ningún backend/IA.
-        Es solo la interfaz; la lógica de cálculo (con Gemini) se
-        conectará en un paso posterior.
-      -->
       <button type="button" id="car-form-save" class="car-panel__submit">
         Guardar datos del coche
       </button>
     </form>
   </div>
 
-  <!-- Canvas del mapa -->
   <div id="gmap" class="map-canvas"></div>
 
-  <!-- Tarjeta flotante del marcador seleccionado -->
   <div id="marker-card" class="marker-card marker-card--hidden">
     <div class="marker-card__img-wrap">
       <img id="mc-img" src="" alt="" class="marker-card__img" />
@@ -232,9 +200,7 @@ const stopsJson = JSON.stringify(stops);
 
 <!-- ─── Estilos ──────────────────────────────────────────────────── -->
 <style>
-  /* Box-sizing global para todo el componente: evita que paddings y
-     bordes hagan que inputs/selects se salgan de su columna flex y
-     se corten contra el overflow:hidden del contenedor del mapa. */
+
   .map-root, .map-root * {
     box-sizing: border-box;
   }
@@ -253,12 +219,6 @@ const stopsJson = JSON.stringify(stops);
     inset: 0;
     width: 100%;
     height: 100%;
-    /* Fuerza su propia capa de composición GPU. Sin esto, los
-       paneles con backdrop-filter que flotan encima provocan un
-       bug de renderizado de Chromium: aparecen líneas/costuras
-       fantasma sobre el mapa que desaparecen solas al abrir las
-       DevTools (porque eso fuerza un repintado). Aislar el mapa en
-       su propia capa evita que ese repintado sea necesario. */
     transform: translateZ(0);
     will-change: transform;
   }
@@ -315,7 +275,6 @@ const stopsJson = JSON.stringify(stops);
     margin: 0;
   }
 
-  /* Pill superior */
   .map-pill {
     position: absolute;
     top: 24px;
@@ -364,7 +323,6 @@ const stopsJson = JSON.stringify(stops);
     text-overflow: ellipsis;
   }
 
-  /* ── Panel de búsqueda de ruta ────────────────────────────────── */
   .route-search {
     position: absolute;
     top: 24px;
@@ -479,7 +437,6 @@ const stopsJson = JSON.stringify(stops);
   }
   .route-error--hidden { display: none; }
 
-  /* ── Panel ocultable de datos del coche ──────────────────────── */
   .car-panel {
     position: absolute;
     bottom: 24px;
@@ -546,9 +503,6 @@ const stopsJson = JSON.stringify(stops);
     width: 100%;
   }
 
-  /* min-width: 0 es la clave: sin esto, los hijos flex nunca se
-     encogen por debajo de su contenido "natural" (el ancho del
-     placeholder/texto) y acaban desbordando la columna. */
   .car-panel__row .car-panel__label {
     flex: 1 1 0;
     min-width: 0;
@@ -581,8 +535,6 @@ const stopsJson = JSON.stringify(stops);
     min-width: 0;
   }
 
-  /* Los <select> con opciones largas pueden imponer un ancho mínimo
-     mayor que el contenedor; forzamos que respeten la columna. */
   .car-panel__label select {
     max-width: 100%;
   }
@@ -603,7 +555,6 @@ const stopsJson = JSON.stringify(stops);
   }
   .car-panel__submit:hover { background-color: #005d6e; }
 
-  /* Tarjeta flotante */
   .marker-card {
     position: absolute;
     bottom: 40px;
@@ -710,7 +661,6 @@ const stopsJson = JSON.stringify(stops);
     border-radius: 9999px;
   }
 
-  /* ── Responsive: pantallas estrechas (móvil) ──────────────────── */
   @media (max-width: 480px) {
     .route-search,
     .car-panel {
@@ -744,10 +694,8 @@ const stopsJson = JSON.stringify(stops);
   }
 </style>
 
-<!-- ─── Script cliente ────────────────────────────────────────────── -->
 <script define:vars={{ apiKey, stopsJson, stops }}>
 
-// ── Tipos de icono → emoji SVG inline como Data URI ──────────────
 const ICON_MAP = {
   flight:     { color: '#004451', symbol: 'flight' },
   hotel:      { color: '#004451', symbol: 'hotel' },
@@ -777,38 +725,17 @@ window.__initVoyagerMap = function () {
     zoom: 13,
     disableDefaultUI: true,
     gestureHandling: 'greedy',
-    // Fuerza el renderizador clásico (raster) en vez del vectorial
-    // (WebGL). El renderizador vectorial es el que produce esas
-    // líneas grises "seam" independientes del contenido/ubicación
-    // en ciertos navegadores/GPU; con raster desaparecen porque deja
-    // de usarse WebGL para pintar el mapa.
     renderingType: google.maps.RenderingType.RASTER,
     styles: [
       { elementType: 'geometry',        stylers: [{ color: '#dff4ff' }] },
       { elementType: 'labels.text.fill',stylers: [{ color: '#3f484b' }] },
-      // Oculta el icono/marcador que Google dibuja pegado a cada
-      // etiqueta de población (esa rayita que aparecía junto a
-      // "Villanueva del Río y Minas", "Aldea de Tujena", "Alpizar"...
-      // se repetía en cada localidad visible: es el "labels.icon",
-      // no una vía ni un límite). El texto de las etiquetas se
-      // mantiene intacto.
       { elementType: 'labels.icon',     stylers: [{ visibility: 'off' }] },
       { featureType: 'water',           elementType: 'geometry', stylers: [{ color: '#bedfef' }] },
-      // Las "rayas" eran el contorno (orillas) de ríos/lagos: se
-      // veían como líneas porque el trazo del borde del agua
-      // contrastaba con el fondo. Quitamos solo el contorno; el
-      // relleno azul del agua se mantiene igual.
       { featureType: 'water',           elementType: 'geometry.stroke', stylers: [{ visibility: 'off' }] },
       { featureType: 'road',            elementType: 'geometry', stylers: [{ color: '#ffffff' }] },
       { featureType: 'road',            elementType: 'geometry.stroke', stylers: [{ color: '#c6e8f8' }] },
       { featureType: 'poi',             stylers: [{ visibility: 'off' }] },
       { featureType: 'transit',         stylers: [{ visibility: 'off' }] },
-      // Las rayas no se movían al hacer zoom/pan (estaban ancladas a
-      // Villanueva del Río y Minas), así que son contenido real del
-      // mapa: muy probablemente una vía de tren (hubo una línea
-      // minera en esa zona) o un límite administrativo. Los cubrimos
-      // todos explícitamente, incluidos los subtipos que 'transit' y
-      // 'administrative' genéricos a veces no heredan del todo.
       { featureType: 'transit.line',              elementType: 'geometry', stylers: [{ visibility: 'off' }] },
       { featureType: 'administrative',             elementType: 'geometry', stylers: [{ visibility: 'off' }] },
       { featureType: 'administrative.land_parcel', stylers: [{ visibility: 'off' }] },
@@ -817,25 +744,6 @@ window.__initVoyagerMap = function () {
     ],
   });
 
-  // ── Corrección de costuras del mapa (resize forzado) ─────────────
-  // Fuerza a Google Maps a recalcular su tamaño y volver a pintar
-  // los tiles. Un solo intento tras el primer 'idle' no basta: si
-  // siguen llegando tiles después (conexión lenta, muchas tiles en
-  // el viewport inicial, fuentes web retrasando el layout, etc.) las
-  // costuras se quedan pintadas y nada vuelve a forzar el repintado
-  // hasta que el usuario abre DevTools (que fuerza un resize real
-  // del viewport). Por eso combinamos tres estrategias:
-  //
-  //   1. 'tilesloaded': se dispara cada vez que Maps termina de
-  //      pintar un nuevo lote de tiles visibles. Mucho más fiable
-  //      que un timeout fijo tras el primer 'idle'.
-  //   2. Reintentos con backoff (250/600/1200ms): cubren el caso de
-  //      que las fuentes web (Inter/Plus Jakarta Sans, cargadas de
-  //      forma asíncrona) terminen de aplicarse después de que el
-  //      mapa ya se considere "idle", alterando sutilmente el
-  //      layout del contenedor.
-  //   3. ResizeObserver: sigue cubriendo cambios de tamaño del
-  //      contenedor más adelante (p. ej. al abrir/cerrar paneles).
   const fixMapSeams = () => {
     google.maps.event.trigger(map, 'resize');
     map.setCenter(map.getCenter());
@@ -860,7 +768,6 @@ window.__initVoyagerMap = function () {
     window.addEventListener('resize', fixMapSeams);
   }
 
-  // ── Marcadores ───────────────────────────────────────────────────
   const markers = parsedStops.map((stop, idx) => {
     const marker = new google.maps.Marker({
       position: { lat: stop.lat, lng: stop.lng },
@@ -885,7 +792,6 @@ window.__initVoyagerMap = function () {
     return marker;
   });
 
-  // ── Ruta entre paradas del itinerario (Directions API) ──────────
   if (parsedStops.length >= 2) {
     const directionsService  = new google.maps.DirectionsService();
     const directionsRenderer = new google.maps.DirectionsRenderer({
@@ -929,7 +835,6 @@ window.__initVoyagerMap = function () {
     );
   }
 
-  // ── Tarjeta flotante ─────────────────────────────────────────────
   function showCard(stop) {
     const card  = document.getElementById('marker-card');
     const img   = document.getElementById('mc-img');
@@ -961,7 +866,6 @@ window.__initVoyagerMap = function () {
     document.getElementById('marker-card').classList.add('marker-card--hidden');
   });
 
-  // ── Botones de zoom personalizados ───────────────────────────────
   document.getElementById('zoom-in').addEventListener('click',  () => map.setZoom(map.getZoom() + 1));
   document.getElementById('zoom-out').addEventListener('click', () => map.setZoom(map.getZoom() - 1));
 
@@ -972,14 +876,12 @@ window.__initVoyagerMap = function () {
     });
   });
 
-  // ── Autocompletado de direcciones para el buscador de ruta ──────
   const originInput      = document.getElementById('route-origin');
   const destinationInput = document.getElementById('route-destination');
 
   const originAutocomplete      = new google.maps.places.Autocomplete(originInput);
   const destinationAutocomplete = new google.maps.places.Autocomplete(destinationInput);
 
-  // ── Panel de búsqueda de ruta: toggle ────────────────────────────
   const routePanel   = document.getElementById('route-search-panel');
   const routeToggle  = document.getElementById('route-search-toggle');
   const routeChevron = document.getElementById('route-search-chevron');
@@ -990,14 +892,12 @@ window.__initVoyagerMap = function () {
     routeChevron.classList.toggle('route-search__chevron--open', isHidden);
   });
 
-  // ── Panel de búsqueda de ruta: cálculo A → B ─────────────────────
   const routeSubmit   = document.getElementById('route-search-submit');
   const routeResult   = document.getElementById('route-result');
   const routeError    = document.getElementById('route-error');
   const durationLabel = document.getElementById('route-result-duration');
   const distanceLabel = document.getElementById('route-result-distance');
 
-  // Renderer aparte para no chocar con la ruta de paradas del itinerario
   const searchDirectionsRenderer = new google.maps.DirectionsRenderer({
     map,
     suppressMarkers: false,
@@ -1037,17 +937,6 @@ window.__initVoyagerMap = function () {
           durationLabel.textContent = leg.duration.text;
           distanceLabel.textContent = leg.distance.text;
           routeResult.classList.remove('route-result--hidden');
-
-          // Tras calcular una ruta, el DirectionsRenderer reencuadra
-          // el mapa (fitBounds) automáticamente. Ese cambio de
-          // zoom/centro recompone las tiles por debajo del panel
-          // "Buscar ruta", pero la capa GPU propia del panel
-          // (backdrop-filter + su box-shadow difuminado) no siempre
-          // se repinta a la vez en Chromium, y deja el contorno de
-          // la sombra "pegado" como una costura gris fantasma.
-          // Forzamos aquí un resize del mapa y un reflow real del
-          // propio panel (leyendo offsetHeight) para que el
-          // compositor vuelva a pintar ambas capas en el mismo frame.
           requestAnimationFrame(() => {
             fixMapSeams();
             routeToggle.style.transform = 'translateZ(0.01px)';
@@ -1062,7 +951,6 @@ window.__initVoyagerMap = function () {
     );
   });
 
-  // ── Panel de datos del coche: toggle ─────────────────────────────
   const carForm     = document.getElementById('car-form');
   const carToggle   = document.getElementById('car-panel-toggle');
   const carChevron  = document.getElementById('car-panel-chevron');
@@ -1073,10 +961,6 @@ window.__initVoyagerMap = function () {
     carChevron.classList.toggle('car-panel__chevron--open', isHidden);
   });
 
-  // ── Guardar datos del coche (solo UI por ahora, sin backend) ─────
-  // Aquí NO se llama a ninguna IA todavía. Solo se recogen los
-  // valores del formulario para usarlos más adelante cuando se
-  // conecte la integración con Gemini.
   const carSaveBtn = document.getElementById('car-form-save');
   carSaveBtn.addEventListener('click', () => {
     const carData = {
@@ -1095,8 +979,6 @@ window.__initVoyagerMap = function () {
       notes:             document.getElementById('car-notes').value,
     };
 
-    // Se emite un evento por si otro componente (futuro formulario
-    // de estimación con Gemini) quiere escuchar estos datos.
     window.dispatchEvent(
       new CustomEvent('voyager:car-data-saved', { detail: carData })
     );
@@ -1105,7 +987,6 @@ window.__initVoyagerMap = function () {
   });
 };
 
-// ── Cargar SDK de Google Maps dinámicamente ──────────────────────
 (function loadGoogleMaps() {
   if (window.google?.maps) { window.__initVoyagerMap(); return; }
   const script   = document.createElement('script');
