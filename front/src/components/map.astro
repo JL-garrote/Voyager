@@ -943,6 +943,17 @@ window.__initVoyagerMap = function () {
             void routeToggle.offsetHeight;
             routeToggle.style.transform = 'translateZ(0)';
           });
+
+          const totalKm = (leg.distance.value / 1000).toFixed(1);
+          fetch('http://localhost:8080/api/trips/saveTrip', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ totalKm: parseFloat(totalKm) }),
+          })
+            .then(res => res.json())
+            .then(data => console.log('Distancia guardada en backend:', data))
+            .catch(err => console.error('Error enviando distancia al backend:', err));
+          // ────────────────────────────────────────────────────
         } else {
           routeError.textContent = `No se pudo calcular la ruta (${status}).`;
           routeError.classList.remove('route-error--hidden');
