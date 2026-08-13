@@ -178,13 +178,6 @@ const stopsJson = JSON.stringify(stops);
         Estimar consumo
       </button>
 
-      <div id="car-estimate-result" class="car-estimate-result car-estimate-result--hidden">
-        <div class="car-estimate-result__row">
-          <span class="material-symbols-outlined">local_gas_station</span>
-          <span id="car-estimate-liters">—</span>
-        </div>
-      </div>
-      <p id="car-estimate-error" class="route-error route-error--hidden"></p>
       <p id="car-save-status" class="car-save-status car-save-status--hidden"></p>
     </form>
   </div>
@@ -206,6 +199,25 @@ const stopsJson = JSON.stringify(stops);
         </button>
       </div>
       <div id="mc-tags" class="marker-card__tags"></div>
+    </div>
+  </div>
+  <div id="ai-modal-overlay" class="ai-modal-overlay ai-modal-overlay--hidden">
+    <div class="ai-modal">
+      <div class="ai-modal__header">
+        <span class="material-symbols-outlined ai-modal__icon">local_gas_station</span>
+        <h4 class="ai-modal__title">Estimación de consumo</h4>
+        <button id="ai-modal-close" class="ai-modal__close" aria-label="Cerrar">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+      <div id="ai-modal-body" class="ai-modal__body">
+        <div id="ai-modal-loading" class="ai-modal__loading ai-modal__loading--hidden">
+          <span class="material-symbols-outlined ai-modal__spinner">progress_activity</span>
+          <p>Calculando estimación...</p>
+        </div>
+        <div id="ai-modal-content" class="ai-modal__content"></div>
+        <p id="ai-modal-error" class="route-error route-error--hidden"></p>
+      </div>
     </div>
   </div>
 
@@ -450,6 +462,120 @@ const stopsJson = JSON.stringify(stops);
   }
   .route-error--hidden { display: none; }
 
+  .ai-modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 31, 41, 0.45);
+    backdrop-filter: blur(4px);
+    padding: 24px;
+    transition: opacity 0.2s;
+  }
+
+  .ai-modal-overlay--hidden {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .ai-modal {
+    width: 480px;
+    max-width: 100%;
+    max-height: calc(100vh - 48px);
+    background: #ffffff;
+    border-radius: 20px;
+    box-shadow: 0 12px 40px rgba(0, 31, 41, 0.25);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .ai-modal__header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 20px 20px 16px;
+    border-bottom: 1px solid rgba(191,200,203,0.3);
+    flex-shrink: 0;
+  }
+
+  .ai-modal__icon {
+    color: #004451;
+  }
+
+  .ai-modal__title {
+    flex: 1;
+    margin: 0;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    color: #004451;
+  }
+
+  .ai-modal__close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(0,68,81,0.08);
+    color: #004451;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    flex-shrink: 0;
+  }
+  .ai-modal__close:hover { background-color: rgba(0,68,81,0.18); }
+
+  .ai-modal__body {
+    padding: 20px;
+    overflow-y: auto;
+  }
+
+  .ai-modal__loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 24px 0;
+    color: #3f484b;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+  }
+  .ai-modal__loading--hidden { display: none; }
+
+  .ai-modal__spinner {
+    animation: ai-modal-spin 1s linear infinite;
+    color: #004451;
+    font-size: 28px;
+  }
+
+  @keyframes ai-modal-spin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+  }
+
+  .ai-modal__content {
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    color: #001f29;
+  }
+
+  .ai-modal__content p {
+    margin: 0 0 12px;
+  }
+  .ai-modal__content p:last-child {
+    margin-bottom: 0;
+  }
+
+  .ai-modal__content strong {
+    color: #004451;
+  }
+
   .car-save-status {
     font-family: 'Inter', sans-serif;
     font-size: 12px;
@@ -585,23 +711,6 @@ const stopsJson = JSON.stringify(stops);
   }
   .car-panel__submit--secondary:hover {
     background-color: #ccedfe;
-  }
-
-  .car-estimate-result {
-    margin-top: 4px;
-    display: flex;
-    gap: 16px;
-    flex-wrap: wrap;
-  }
-  .car-estimate-result--hidden { display: none; }
-  .car-estimate-result__row {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    font-family: 'Inter', sans-serif;
-    font-size: 14px;
-    font-weight: 700;
-    color: #004451;
   }
 
   .marker-card {
@@ -770,6 +879,7 @@ function makePinSvg(symbol) {
   `)}`;
 }
 
+// ── Inicializar mapa cuando carga la API ──────────────────────────
 window.__initVoyagerMap = function () {
   const parsedStops = JSON.parse(stopsJson);
 
@@ -880,9 +990,12 @@ window.__initVoyagerMap = function () {
           const legs        = result.routes[0].legs;
           const totalMeters  = legs.reduce((acc, l) => acc + l.distance.value, 0);
           const totalKm      = (totalMeters / 1000).toFixed(1);
-          document.getElementById('stops-meta').textContent =
-            `${parsedStops.length} Stops • ${totalKm} km total`;
+          const stopsMetaEl = document.getElementById('stops-meta');
+          if (stopsMetaEl) {
+            stopsMetaEl.textContent = `${parsedStops.length} Stops • ${totalKm} km total`;
+          }
 
+          // Compartimos la distancia con otros componentes (ej. formulario de combustible)
           window.dispatchEvent(
             new CustomEvent('voyager:distance-updated', { detail: { totalKm } })
           );
@@ -1002,6 +1115,7 @@ window.__initVoyagerMap = function () {
 
           const totalKm = (leg.distance.value / 1000).toFixed(1);
 
+          // Mantenemos currentTotalKm sincronizado con esta ruta también
           window.dispatchEvent(
             new CustomEvent('voyager:distance-updated', { detail: { totalKm } })
           );
@@ -1033,11 +1147,16 @@ window.__initVoyagerMap = function () {
     carChevron.classList.toggle('car-panel__chevron--open', isHidden);
   });
 
+  // Convierte a entero de forma segura; si está vacío o no es un número,
+  // devuelve 0 en vez de null (los campos int de Coche son primitivos y
+  // no admiten null).
   function toInt(value) {
     const parsed = parseInt(value, 10);
     return Number.isNaN(parsed) ? 0 : parsed;
   }
 
+  // Los nombres de estas propiedades deben coincidir EXACTAMENTE con los
+  // campos de com.example.demo.Models.Coche para que Jackson los mapee bien.
   function readCarData() {
     return {
       marca:             document.getElementById('car-make').value,
@@ -1089,36 +1208,82 @@ window.__initVoyagerMap = function () {
   });
 
   const carEstimateBtn = document.getElementById('car-estimate-btn');
-  const estimateResult = document.getElementById('car-estimate-result');
-  const estimateError  = document.getElementById('car-estimate-error');
-  const estimateLiters = document.getElementById('car-estimate-liters');
+  const aiModalOverlay = document.getElementById('ai-modal-overlay');
+  const aiModalClose   = document.getElementById('ai-modal-close');
+  const aiModalLoading = document.getElementById('ai-modal-loading');
+  const aiModalContent = document.getElementById('ai-modal-content');
+  const aiModalError   = document.getElementById('ai-modal-error');
+
+  // Movemos el overlay del modal directamente a <body>. Así evitamos que
+  // quede recortado o mal posicionado si algún contenedor padre del
+  // widget (fuera de este componente) tiene overflow:hidden o transform,
+  // lo cual rompería el position:fixed y ocultaría el popup.
+  document.body.appendChild(aiModalOverlay);
+
+  // Convierte el texto plano de Gemini (que puede traer **negritas** y
+  // saltos de línea) en HTML simple y legible dentro del popup.
+  function formatAiText(text) {
+    return text
+      .trim()
+      .split(/\n\s*\n/) // separa en párrafos por líneas en blanco
+      .map(paragraph => {
+        const withBold = paragraph
+          .trim()
+          .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+          .replace(/\n/g, '<br>');
+        return `<p>${withBold}</p>`;
+      })
+      .join('');
+  }
+
+  function openAiModal() {
+    aiModalOverlay.classList.remove('ai-modal-overlay--hidden');
+  }
+
+  function closeAiModal() {
+    aiModalOverlay.classList.add('ai-modal-overlay--hidden');
+  }
+
+  aiModalClose.addEventListener('click', closeAiModal);
+  aiModalOverlay.addEventListener('click', (e) => {
+    if (e.target === aiModalOverlay) closeAiModal();
+  });
 
   carEstimateBtn.addEventListener('click', () => {
-    estimateError.classList.add('route-error--hidden');
-    estimateResult.classList.add('car-estimate-result--hidden');
-
     if (currentTotalKm === null) {
-      estimateError.textContent = 'Primero calcula una ruta para tener los km totales.';
-      estimateError.classList.remove('route-error--hidden');
+      aiModalContent.innerHTML = '';
+      aiModalError.textContent = 'Primero calcula una ruta para tener los km totales.';
+      aiModalError.classList.remove('route-error--hidden');
+      aiModalLoading.classList.add('ai-modal__loading--hidden');
+      openAiModal();
       return;
     }
 
+    aiModalError.classList.add('route-error--hidden');
+    aiModalContent.innerHTML = '';
+    aiModalLoading.classList.remove('ai-modal__loading--hidden');
+    openAiModal();
+
+    // El backend usa el último coche y el último viaje guardados
+    // internamente (no hace falta enviar body). Al ser GET, fetch no
+    // admite 'body' en la petición.
     fetch('http://localhost:8080/api/coche/respuestaIA', {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' },
     })
       .then(res => {
         if (!res.ok) throw new Error(`Error ${res.status}`);
-        return res.text();
+        return res.text(); // el backend devuelve un String (respuesta de Gemini), no JSON
       })
       .then(text => {
-        estimateLiters.textContent = text;
-        estimateResult.classList.remove('car-estimate-result--hidden');
+        aiModalLoading.classList.add('ai-modal__loading--hidden');
+        aiModalContent.innerHTML = formatAiText(text);
       })
       .catch(err => {
         console.error('Error estimando consumo:', err);
-        estimateError.textContent = 'No se pudo calcular el consumo.';
-        estimateError.classList.remove('route-error--hidden');
+        aiModalLoading.classList.add('ai-modal__loading--hidden');
+        aiModalError.textContent = 'No se pudo calcular el consumo.';
+        aiModalError.classList.remove('route-error--hidden');
       });
   });
 };
