@@ -173,6 +173,19 @@ const stopsJson = JSON.stringify(stops);
       <button type="button" id="car-form-save" class="car-panel__submit">
         Guardar datos del coche
       </button>
+
+      <button type="button" id="car-estimate-btn" class="car-panel__submit car-panel__submit--secondary">
+        Estimar consumo
+      </button>
+
+      <div id="car-estimate-result" class="car-estimate-result car-estimate-result--hidden">
+        <div class="car-estimate-result__row">
+          <span class="material-symbols-outlined">local_gas_station</span>
+          <span id="car-estimate-liters">—</span>
+        </div>
+      </div>
+      <p id="car-estimate-error" class="route-error route-error--hidden"></p>
+      <p id="car-save-status" class="car-save-status car-save-status--hidden"></p>
     </form>
   </div>
 
@@ -437,6 +450,16 @@ const stopsJson = JSON.stringify(stops);
   }
   .route-error--hidden { display: none; }
 
+  .car-save-status {
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    color: #1a7d3c;
+    margin: 0;
+  }
+  .car-save-status--hidden { display: none; }
+  .car-save-status--error { color: #ba1a1a; }
+
   .car-panel {
     position: absolute;
     bottom: 24px;
@@ -554,6 +577,32 @@ const stopsJson = JSON.stringify(stops);
     flex-shrink: 0;
   }
   .car-panel__submit:hover { background-color: #005d6e; }
+
+  .car-panel__submit--secondary {
+    background-color: transparent;
+    color: #004451;
+    border: 1px solid #004451;
+  }
+  .car-panel__submit--secondary:hover {
+    background-color: #ccedfe;
+  }
+
+  .car-estimate-result {
+    margin-top: 4px;
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .car-estimate-result--hidden { display: none; }
+  .car-estimate-result__row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: #004451;
+  }
 
   .marker-card {
     position: absolute;
@@ -704,6 +753,15 @@ const ICON_MAP = {
   default:    { color: '#004451', symbol: 'place' },
 };
 
+// Km totales de la ruta activa (se actualiza tanto con la ruta de "stops"
+// como con la búsqueda manual de origen/destino).
+let currentTotalKm = null;
+
+window.addEventListener('voyager:distance-updated', (e) => {
+  const value = parseFloat(e.detail.totalKm);
+  if (!Number.isNaN(value)) currentTotalKm = value;
+});
+
 function makePinSvg(symbol) {
   return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
     <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40">
@@ -712,7 +770,6 @@ function makePinSvg(symbol) {
   `)}`;
 }
 
-// ── Inicializar mapa cuando carga la API ──────────────────────────
 window.__initVoyagerMap = function () {
   const parsedStops = JSON.parse(stopsJson);
 
@@ -826,7 +883,6 @@ window.__initVoyagerMap = function () {
           document.getElementById('stops-meta').textContent =
             `${parsedStops.length} Stops • ${totalKm} km total`;
 
-          // Compartimos la distancia con otros componentes (ej. formulario de combustible)
           window.dispatchEvent(
             new CustomEvent('voyager:distance-updated', { detail: { totalKm } })
           );
@@ -945,6 +1001,11 @@ window.__initVoyagerMap = function () {
           });
 
           const totalKm = (leg.distance.value / 1000).toFixed(1);
+
+          window.dispatchEvent(
+            new CustomEvent('voyager:distance-updated', { detail: { totalKm } })
+          );
+
           fetch('http://localhost:8080/api/trips/saveTrip', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -972,29 +1033,93 @@ window.__initVoyagerMap = function () {
     carChevron.classList.toggle('car-panel__chevron--open', isHidden);
   });
 
-  const carSaveBtn = document.getElementById('car-form-save');
-  carSaveBtn.addEventListener('click', () => {
-    const carData = {
-      make:              document.getElementById('car-make').value,
-      model:             document.getElementById('car-model').value,
-      year:              document.getElementById('car-year').value,
-      trim:              document.getElementById('car-trim').value,
-      fuelType:          document.getElementById('car-fuel-type').value,
-      transmission:      document.getElementById('car-transmission').value,
-      displacementCc:    document.getElementById('car-displacement').value,
-      powerCv:           document.getElementById('car-power').value,
-      weightKg:          document.getElementById('car-weight').value,
-      occupants:         document.getElementById('car-occupants').value,
-      knownConsumption:  document.getElementById('car-known-consumption').value,
-      tires:             document.getElementById('car-tires').value,
-      notes:             document.getElementById('car-notes').value,
+  function toInt(value) {
+    const parsed = parseInt(value, 10);
+    return Number.isNaN(parsed) ? 0 : parsed;
+  }
+
+  function readCarData() {
+    return {
+      marca:             document.getElementById('car-make').value,
+      modelo:            document.getElementById('car-model').value,
+      anio:              toInt(document.getElementById('car-year').value),
+      version:           document.getElementById('car-trim').value,
+      combustible:       document.getElementById('car-fuel-type').value,
+      transmision:       document.getElementById('car-transmission').value,
+      cilindrada:        toInt(document.getElementById('car-displacement').value),
+      potencia:          toInt(document.getElementById('car-power').value),
+      peso:              toInt(document.getElementById('car-weight').value),
+      numeroOcupantes:   toInt(document.getElementById('car-occupants').value),
+      consumoConocido:   toInt(document.getElementById('car-known-consumption').value),
+      notasAdicionales:  document.getElementById('car-notes').value,
     };
+  }
+
+  const carSaveBtn    = document.getElementById('car-form-save');
+  const carSaveStatus = document.getElementById('car-save-status');
+
+  carSaveBtn.addEventListener('click', () => {
+    const carData = readCarData();
 
     window.dispatchEvent(
       new CustomEvent('voyager:car-data-saved', { detail: carData })
     );
 
-    console.log('Datos del coche guardados (aún sin backend):', carData);
+    carSaveStatus.classList.remove('car-save-status--hidden', 'car-save-status--error');
+    carSaveStatus.textContent = 'Guardando...';
+
+    fetch('http://localhost:8080/api/coche/guardarCoche', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(carData),
+    })
+      .then(res => {
+        if (!res.ok) throw new Error(`Error ${res.status}`);
+        return res.json();
+      })
+      .then(data => {
+        console.log('Coche guardado en backend:', data);
+        carSaveStatus.textContent = 'Datos del coche guardados correctamente.';
+      })
+      .catch(err => {
+        console.error('Error guardando el coche:', err);
+        carSaveStatus.textContent = 'No se pudo guardar el coche.';
+        carSaveStatus.classList.add('car-save-status--error');
+      });
+  });
+
+  const carEstimateBtn = document.getElementById('car-estimate-btn');
+  const estimateResult = document.getElementById('car-estimate-result');
+  const estimateError  = document.getElementById('car-estimate-error');
+  const estimateLiters = document.getElementById('car-estimate-liters');
+
+  carEstimateBtn.addEventListener('click', () => {
+    estimateError.classList.add('route-error--hidden');
+    estimateResult.classList.add('car-estimate-result--hidden');
+
+    if (currentTotalKm === null) {
+      estimateError.textContent = 'Primero calcula una ruta para tener los km totales.';
+      estimateError.classList.remove('route-error--hidden');
+      return;
+    }
+
+    fetch('http://localhost:8080/api/coche/respuestaIA', {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    })
+      .then(res => {
+        if (!res.ok) throw new Error(`Error ${res.status}`);
+        return res.text();
+      })
+      .then(text => {
+        estimateLiters.textContent = text;
+        estimateResult.classList.remove('car-estimate-result--hidden');
+      })
+      .catch(err => {
+        console.error('Error estimando consumo:', err);
+        estimateError.textContent = 'No se pudo calcular el consumo.';
+        estimateError.classList.remove('route-error--hidden');
+      });
   });
 };
 
