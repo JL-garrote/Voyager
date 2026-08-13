@@ -1,19 +1,14 @@
 ---
 import TopNav from '../components/Header.astro';
-import SideNav from '../components/Sidevar.astro';
 import Map from '../components/map.astro';
 import '../styles/global.css';
 
 interface Props {
   title?: string;
-  activeNav?: string;
-  activeTopLink?: 'explore' | 'community';
 }
 
 const {
-  title = 'VoyagerElite',
-  activeNav,
-  activeTopLink,
+  title = 'Voyager',
 } = Astro.props;
 ---
 
@@ -36,18 +31,11 @@ const {
   </head>
 
   <body class="font-body-md text-body-md">
-    <TopNav activeLink={activeTopLink} />
-    <SideNav activeItem={activeNav} />
+    <TopNav/>
+    <main class="pt-20 h-screen flex overflow-hidden">
+      
+      <Map />
 
-    <!--
-      Área de contenido principal.
-      pl-[280px] = ancho del SideNav
-      pt-20      = altura del TopNav (80px = h-20)
-    -->
-    <main class="pl-[280px] pt-20 h-screen flex overflow-hidden">
-      <div class="map-flex-wrapper">
-        <Map />
-      </div>
 
     </main>
   </body>

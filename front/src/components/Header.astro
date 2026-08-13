@@ -10,37 +10,9 @@ const {
 
 <header class="topnav">
   <div class="topnav__left">
-    <a href="/" class="topnav__logo">VoyagerElite</a>
-    <nav class="topnav__nav">
-      <a
-        href="/explore"
-        class:list={['topnav__link', { 'topnav__link--active': activeLink === 'explore' }]}
-      >
-        Explore
-      </a>
-      <a
-        href="/community"
-        class:list={['topnav__link', { 'topnav__link--active': activeLink === 'community' }]}
-      >
-        Community
-      </a>
-    </nav>
+    <a href="/" class="topnav__logo">Voyager</a>
   </div>
 
-  <div class="topnav__right">
-    <div class="topnav__search">
-      <span class="material-symbols-outlined topnav__search-icon">search</span>
-      <input
-        class="topnav__search-input"
-        placeholder="Search experiences..."
-        type="text"
-        aria-label="Search experiences"
-      />
-    </div>
-
-    <button class="topnav__icon-btn" aria-label="Notifications">
-      <span class="material-symbols-outlined">notifications</span>
-    </button>
     <button class="topnav__icon-btn" aria-label="Settings">
       <span class="material-symbols-outlined">settings</span>
     </button>

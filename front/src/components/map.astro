@@ -10,6 +10,7 @@ interface Stop {
 
 interface Props {
   apiKey?: string;
+  geoapifyApiKey?: string;
   stops?: Stop[];
   dayLabel?: string;
   totalDistance?: string;
@@ -17,12 +18,19 @@ interface Props {
 
 const {
   apiKey = import.meta.env.PUBLIC_GOOGLE_MAPS_API_KEY,
+  geoapifyApiKey = import.meta.env.PUBLIC_GEOAPIFY_API_KEY,
   stops = [],
 } = Astro.props;
 
 if (!apiKey) {
   throw new Error(
     'Falta la API key de Google Maps. Define PUBLIC_GOOGLE_MAPS_API_KEY en tu archivo .env',
+  );
+}
+
+if (!geoapifyApiKey) {
+  throw new Error(
+    'Falta la API key de Geoapify. Define PUBLIC_GEOAPIFY_API_KEY en tu archivo .env',
   );
 }
 
@@ -43,6 +51,9 @@ const stopsJson = JSON.stringify(stops);
     </div>
     <button id="my-location" class="map-zoom map-zoom--icon" aria-label="My location">
       <span class="material-symbols-outlined">my_location</span>
+    </button>
+    <button id="hotel-toggle" class="map-zoom map-zoom--icon" aria-label="Mostrar hoteles">
+      <span class="material-symbols-outlined">hotel</span>
     </button>
   </div>
 
@@ -277,6 +288,15 @@ const stopsJson = JSON.stringify(stops);
     flex-direction: row;
     justify-content: center;
     padding: 12px;
+  }
+
+  .map-zoom--active {
+    background-color: #004451;
+  }
+
+  .map-zoom--active .map-zoom__btn,
+  .map-zoom--active .material-symbols-outlined {
+    color: #ffffff;
   }
 
   .map-zoom__btn {
@@ -852,7 +872,7 @@ const stopsJson = JSON.stringify(stops);
   }
 </style>
 
-<script define:vars={{ apiKey, stopsJson, stops }}>
+<script define:vars={{ apiKey, geoapifyApiKey, stopsJson, stops }}>
 
 const ICON_MAP = {
   flight:     { color: '#004451', symbol: 'flight' },
@@ -875,6 +895,42 @@ function makePinSvg(symbol) {
   return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
     <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40">
       <circle cx="20" cy="20" r="18" fill="#004451" stroke="white" stroke-width="3"/>
+    </svg>
+  `)}`;
+}
+
+// Pin en forma de gota con icono de cama, para diferenciar visualmente
+// los hoteles de Geoapify de los "stops" del itinerario (que usan un
+// círculo simple). Incluye sombra suave para que destaque sobre el mapa.
+function makeHotelPinSvg() {
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
+    <svg xmlns="http://www.w3.org/2000/svg" width="44" height="56" viewBox="0 0 44 56">
+      <defs>
+        <filter id="pinShadow" x="-50%" y="-50%" width="200%" height="200%">
+          <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#001f29" flood-opacity="0.35"/>
+        </filter>
+      </defs>
+      <path filter="url(#pinShadow)" d="M22 1C10.4 1 1 10.4 1 22c0 15.5 21 32.5 21 32.5S43 37.5 43 22C43 10.4 33.6 1 22 1z" fill="#8e4e14" stroke="#ffffff" stroke-width="2.5"/>
+      <circle cx="22" cy="22" r="14.5" fill="#ffffff"/>
+      <g transform="translate(10.5,13)" fill="#8e4e14">
+        <path d="M2 3.5A1.5 1.5 0 0 1 3.5 2h5A1.5 1.5 0 0 1 10 3.5V6h3V3.5A1.5 1.5 0 0 1 14.5 2h5A1.5 1.5 0 0 1 21 3.5V10h2v7h-2.2v2h-2V17H4.2v2h-2v-2H0v-7h2V3.5z"/>
+        <circle cx="6" cy="5.2" r="1.7" fill="#ffffff"/>
+      </g>
+    </svg>
+  `)}`;
+}
+
+// Icono de reemplazo para la tarjeta de información cuando no hay foto
+// real del alojamiento (Geoapify no siempre la proporciona). Evita que
+// se muestre un <img> roto y mantiene la estética de la app.
+function makeHotelPlaceholderImage() {
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
+    <svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96">
+      <rect width="96" height="96" fill="#ffdcc4"/>
+      <g transform="translate(20,32)" fill="#8e4e14">
+        <path d="M4 8A3 3 0 0 1 7 5h11A3 3 0 0 1 21 8v5h6V8A3 3 0 0 1 30 5h11A3 3 0 0 1 44 8v14h4v14h-4.4v4h-4v-4H8.4v4h-4v-4H0V22h4V8z"/>
+        <circle cx="12" cy="11" r="3.4" fill="#ffdcc4"/>
+      </g>
     </svg>
   `)}`;
 }
@@ -1014,8 +1070,19 @@ window.__initVoyagerMap = function () {
 
     title.textContent = stop.label;
     sub.textContent   = stop.time ?? '';
-    img.src           = stop.image ?? '';
     img.alt           = stop.label;
+
+    // Si no hay imagen (o falla al cargar), ocultamos el <img> para no
+    // mostrar el icono de "imagen rota"; el fondo de color del wrapper
+    // se ve en su lugar.
+    if (stop.image) {
+      img.src = stop.image;
+      img.style.display = '';
+      img.onerror = () => { img.style.display = 'none'; };
+    } else {
+      img.removeAttribute('src');
+      img.style.display = 'none';
+    }
 
     tags.innerHTML = (stop.tags ?? [])
       .map(t => `<span class="marker-card__tag">${t}</span>`)
@@ -1044,6 +1111,152 @@ window.__initVoyagerMap = function () {
       map.setZoom(15);
     });
   });
+
+  // ── Hoteles (Geoapify Places API) ────────────────────────────────
+  // Muestra/oculta marcadores de alojamiento (hoteles, hostales,
+  // apartamentos turísticos, etc.) alrededor del DESTINO del viaje
+  // (la última parada del itinerario), no de todo lo que se ve en pantalla.
+  let hotelMarkers = [];
+  let hotelsVisible = false;
+  let hotelsLoading = false;
+
+  const hotelToggleBtn = document.getElementById('hotel-toggle');
+
+  // Punto de referencia dinámico. Empieza con la última parada del
+  // itinerario (si existe); se sobreescribe cada vez que se calcula
+  // una ruta con el buscador de Origen/Destino, para que "hoteles"
+  // siempre apunte al destino que el usuario acaba de buscar.
+  const initialDestinationStop = parsedStops.length
+    ? parsedStops[parsedStops.length - 1]
+    : null;
+
+  let currentDestination = initialDestinationStop
+    ? { lat: initialDestinationStop.lat, lng: initialDestinationStop.lng }
+    : null;
+
+  function clearHotelMarkers() {
+    hotelMarkers.forEach(m => m.setMap(null));
+    hotelMarkers = [];
+  }
+
+  async function fetchHotels() {
+    if (!currentDestination) return [];
+
+    const lat = currentDestination.lat;
+    const lon = currentDestination.lng;
+    const radius = 5000; // 5 km alrededor del destino
+
+    // accommodation.hotel = hoteles;
+    // añadimos el resto de la categoría "accommodation" para no dejar
+    // fuera hostales, apartamentos turísticos, B&B, etc.
+    const categories = [
+      'accommodation.hotel',
+      'accommodation.hostel',
+      'accommodation.apartment',
+      'accommodation.guest_house',
+      'accommodation.motel',
+    ].join(',');
+
+    const url = new URL('https://api.geoapify.com/v2/places');
+    url.searchParams.set('categories', categories);
+    url.searchParams.set('filter', `circle:${lon},${lat},${radius}`);
+    url.searchParams.set('bias', `proximity:${lon},${lat}`);
+    url.searchParams.set('limit', '50');
+    url.searchParams.set('apiKey', geoapifyApiKey);
+
+    const res = await fetch(url);
+    if (!res.ok) {
+      throw new Error(`Geoapify respondió ${res.status}`);
+    }
+    const data = await res.json();
+    return data.features ?? [];
+  }
+
+  function addHotelMarkers(features) {
+    clearHotelMarkers();
+
+    hotelMarkers = features
+      .filter(f => f.geometry?.coordinates?.length === 2)
+      .map(feature => {
+        const [lon, lat] = feature.geometry.coordinates;
+        const props = feature.properties ?? {};
+        const nombre = props.name || 'Alojamiento sin nombre';
+        const direccion = props.formatted || props.address_line2 || '';
+        const categoriaTags = (props.categories ?? [])
+          .filter(c => c.startsWith('accommodation'))
+          .map(c => c.split('.').pop());
+
+        const marker = new google.maps.Marker({
+          position: { lat, lng: lon },
+          map,
+          title: nombre,
+          icon: {
+            url: makeHotelPinSvg(),
+            scaledSize: new google.maps.Size(44, 56),
+            anchor: new google.maps.Point(22, 56),
+          },
+          animation: google.maps.Animation.DROP,
+        });
+
+        marker.addListener('click', () => {
+          showCard({
+            label: nombre,
+            time: direccion,
+            image: makeHotelPlaceholderImage(),
+            tags: categoriaTags,
+            lat,
+            lng: lon,
+          });
+        });
+
+        return marker;
+      });
+  }
+
+  async function toggleHotels() {
+    if (hotelsLoading) return;
+
+    if (hotelsVisible) {
+      clearHotelMarkers();
+      hotelsVisible = false;
+      hotelToggleBtn.classList.remove('map-zoom--active');
+      return;
+    }
+
+    if (!currentDestination) {
+      routeError.textContent = 'Primero calcula una ruta para ver hoteles del destino.';
+      routeError.classList.remove('route-error--hidden');
+      routePanel.classList.remove('route-search__panel--hidden');
+      routeChevron.classList.add('route-search__chevron--open');
+      return;
+    }
+
+    hotelsLoading = true;
+    hotelToggleBtn.classList.add('map-zoom--active');
+
+    try {
+      const features = await fetchHotels();
+      addHotelMarkers(features);
+      hotelsVisible = true;
+
+      // Centramos el mapa en el destino para que se vean bien los
+      // hoteles encontrados, sin perder demasiado zoom.
+      map.panTo(currentDestination);
+      if (map.getZoom() < 13) map.setZoom(13);
+
+      if (features.length === 0) {
+        console.warn('No se encontraron alojamientos cerca del destino.');
+      }
+    } catch (err) {
+      console.error('Error obteniendo hoteles de Geoapify:', err);
+      hotelToggleBtn.classList.remove('map-zoom--active');
+    } finally {
+      hotelsLoading = false;
+    }
+  }
+
+  hotelToggleBtn.addEventListener('click', toggleHotels);
+  // ──────────────────────────────────────────────────────────────────
 
   const originInput      = document.getElementById('route-origin');
   const destinationInput = document.getElementById('route-destination');
@@ -1106,6 +1319,22 @@ window.__initVoyagerMap = function () {
           durationLabel.textContent = leg.duration.text;
           distanceLabel.textContent = leg.distance.text;
           routeResult.classList.remove('route-result--hidden');
+
+          // Actualizamos el destino de referencia para el botón de
+          // hoteles: usamos la ubicación geocodificada real (end_location)
+          // en vez del texto escrito, y limpiamos los hoteles de una
+          // búsqueda anterior para que el usuario tenga que volver a
+          // pulsar el botón sobre el destino nuevo.
+          currentDestination = {
+            lat: leg.end_location.lat(),
+            lng: leg.end_location.lng(),
+          };
+          if (hotelsVisible) {
+            clearHotelMarkers();
+            hotelsVisible = false;
+            hotelToggleBtn.classList.remove('map-zoom--active');
+          }
+
           requestAnimationFrame(() => {
             fixMapSeams();
             routeToggle.style.transform = 'translateZ(0.01px)';
