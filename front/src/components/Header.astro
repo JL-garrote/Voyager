@@ -13,12 +13,95 @@ const {
     <a href="/" class="topnav__logo">Voyager</a>
   </div>
 
-    <button class="topnav__icon-btn" aria-label="Settings">
-      <span class="material-symbols-outlined">settings</span>
-    </button>
+  <div class="topnav__right">
+    <div class="settings-wrap">
+      <button id="settings-toggle" class="topnav__icon-btn" aria-label="Settings" aria-expanded="false">
+        <span class="material-symbols-outlined">settings</span>
+      </button>
+
+      <div id="settings-panel" class="settings-panel settings-panel--hidden">
+        <p class="settings-panel__title">Apariencia</p>
+
+        <div class="settings-panel__group">
+          <span class="settings-panel__label">Tema</span>
+          <div class="settings-panel__options" role="radiogroup" aria-label="Tema">
+            <button type="button" class="theme-option" data-theme-value="light" aria-pressed="true">
+              <span class="material-symbols-outlined">light_mode</span>
+              Claro
+            </button>
+            <button type="button" class="theme-option" data-theme-value="dark" aria-pressed="false">
+              <span class="material-symbols-outlined">dark_mode</span>
+              Oscuro
+            </button>
+            <button type="button" class="theme-option" data-theme-value="system" aria-pressed="false">
+              <span class="material-symbols-outlined">contrast</span>
+              Sistema
+            </button>
+          </div>
+        </div>
+
+        <div class="settings-panel__group">
+          <span class="settings-panel__label">Tamaño de texto</span>
+          <div class="settings-panel__options" role="radiogroup" aria-label="Tamaño de texto">
+            <button type="button" class="theme-option" data-font-value="sm">A-</button>
+            <button type="button" class="theme-option" data-font-value="md" aria-pressed="true">A</button>
+            <button type="button" class="theme-option" data-font-value="lg">A+</button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </header>
 
+<style is:global>
+  :root {
+    --bg-header: rgba(243, 250, 255, 0.7);
+    --bg-panel: rgba(255, 255, 255, 0.97);
+    --bg-surface: #e6f6ff;
+    --bg-surface-hover: #ccedfe;
+    
+    --border-subtle: rgba(191, 200, 203, 0.3);
+    --border-option: rgba(191, 200, 203, 0.4);
+    
+    --text-brand: #004451;
+    --text-main: #001f29;
+    --text-secondary: #3f484b;
+    --text-muted: #6f797c;
+    
+    --avatar-border: #adecff;
+    --btn-hover-bg: rgba(0, 68, 81, 0.08);
+    
+    --active-bg: #004451;
+    --active-text: #ffffff;
+    
+    --panel-shadow: 0 8px 24px rgba(0, 31, 41, 0.14);
+  }
+
+  html[data-theme="dark"] {
+    --bg-header: rgba(15, 23, 30, 0.8);
+    --bg-panel: rgba(23, 33, 43, 0.95);
+    --bg-surface: #1e2c38;
+    --bg-surface-hover: #2a3d4e;
+    
+    --border-subtle: rgba(255, 255, 255, 0.12);
+    --border-option: rgba(255, 255, 255, 0.18);
+    
+    --text-brand: #58d5f8;
+    --text-main: #f0f4f8;
+    --text-secondary: #c0ced6;
+    --text-muted: #8a9ba8;
+    
+    --avatar-border: #005a6b;
+    --btn-hover-bg: rgba(88, 213, 248, 0.12);
+    
+    --active-bg: #58d5f8;
+    --active-text: #001f29;
+    
+    --panel-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+  }
+</style>
+
+<!-- 2. Estilos propios y encapsulados del Header -->
 <style>
   .topnav {
     position: fixed;
@@ -30,10 +113,11 @@ const {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background-color: rgba(243, 250, 255, 0.7);
+    background-color: var(--bg-header);
     backdrop-filter: blur(24px);
     -webkit-backdrop-filter: blur(24px);
-    border-bottom: 1px solid rgba(191, 200, 203, 0.3);
+    border-bottom: 1px solid var(--border-subtle);
+    transition: background-color 0.25s, border-color 0.25s;
   }
 
   /* ── Left ── */
@@ -49,8 +133,9 @@ const {
     font-weight: 700;
     line-height: 1.1;
     letter-spacing: -0.02em;
-    color: #004451;
+    color: var(--text-brand);
     text-decoration: none;
+    transition: color 0.25s;
   }
 
   .topnav__nav {
@@ -70,14 +155,14 @@ const {
     font-size: 16px;
     font-weight: 400;
     line-height: 1.5;
-    color: #3f484b;
+    color: var(--text-secondary);
     text-decoration: none;
     transition: color 0.2s;
   }
 
   .topnav__link:hover,
   .topnav__link--active {
-    color: #004451;
+    color: var(--text-brand);
   }
 
   /* ── Right ── */
@@ -93,9 +178,10 @@ const {
     gap: 0.5rem;
     width: 16rem;
     padding: 0.5rem 1rem;
-    background-color: #e6f6ff;
-    border: 1px solid rgba(191, 200, 203, 0.3);
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
     border-radius: 9999px;
+    transition: background-color 0.25s, border-color 0.25s;
   }
 
   @media (min-width: 768px) {
@@ -106,7 +192,7 @@ const {
 
   .topnav__search-icon {
     font-size: 20px;
-    color: #6f797c;
+    color: var(--text-muted);
   }
 
   .topnav__search-input {
@@ -117,11 +203,11 @@ const {
     font-size: 14px;
     font-weight: 500;
     width: 100%;
-    color: #001f29;
+    color: var(--text-main);
   }
 
   .topnav__search-input::placeholder {
-    color: #6f797c;
+    color: var(--text-muted);
   }
 
   .topnav__icon-btn {
@@ -130,13 +216,14 @@ const {
     background: none;
     border: none;
     cursor: pointer;
-    color: #3f484b;
-    transition: color 0.2s;
+    color: var(--text-secondary);
+    transition: color 0.2s, background-color 0.2s;
     border-radius: 0.5rem;
   }
 
   .topnav__icon-btn:hover {
-    color: #004451;
+    color: var(--text-brand);
+    background-color: var(--btn-hover-bg);
   }
 
   .topnav__avatar {
@@ -144,9 +231,10 @@ const {
     height: 40px;
     border-radius: 9999px;
     overflow: hidden;
-    border: 2px solid #adecff;
+    border: 2px solid var(--avatar-border);
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     flex-shrink: 0;
+    transition: border-color 0.25s;
   }
 
   .topnav__avatar img {
@@ -154,4 +242,202 @@ const {
     height: 100%;
     object-fit: cover;
   }
+
+  /* ── Panel de ajustes ── */
+  .settings-wrap {
+    position: relative;
+  }
+
+  .settings-panel {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    z-index: 60;
+    width: 260px;
+    background: var(--bg-panel);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--border-subtle);
+    border-radius: 16px;
+    padding: 16px;
+    box-shadow: var(--panel-shadow);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    transition: background-color 0.25s, border-color 0.25s, box-shadow 0.25s;
+  }
+
+  .settings-panel--hidden {
+    display: none;
+  }
+
+  .settings-panel__title {
+    margin: 0;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-brand);
+  }
+
+  .settings-panel__group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .settings-panel__label {
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+  }
+
+  .settings-panel__options {
+    display: flex;
+    gap: 6px;
+  }
+
+  .theme-option {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    padding: 8px 4px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-option);
+    border-radius: 10px;
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    transition: background-color 0.15s, color 0.15s, border-color 0.15s;
+  }
+
+  .theme-option .material-symbols-outlined {
+    font-size: 18px;
+  }
+
+  .theme-option:hover {
+    background-color: var(--bg-surface-hover);
+  }
+
+  .theme-option[aria-pressed="true"] {
+    background-color: var(--active-bg);
+    border-color: var(--active-bg);
+    color: var(--active-text);
+  }
+
+  @media (max-width: 480px) {
+    .settings-panel {
+      right: -16px;
+      width: 240px;
+    }
+  }
 </style>
+
+<script>
+  // ── Preferencias visuales (tema + tamaño de texto) ──────────────────
+  const STORAGE_THEME_KEY = 'voyager:theme';
+  const STORAGE_FONT_KEY  = 'voyager:font-size';
+
+  const root = document.documentElement;
+
+  function applyTheme(value) {
+    if (value === 'system') {
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      root.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
+    } else {
+      root.setAttribute('data-theme', value);
+    }
+    root.setAttribute('data-theme-pref', value);
+  }
+
+  function applyFontSize(value) {
+    root.setAttribute('data-font-size', value);
+  }
+
+  function initSettings() {
+    const savedTheme = localStorage.getItem(STORAGE_THEME_KEY) || 'light';
+    const savedFont  = localStorage.getItem(STORAGE_FONT_KEY)  || 'md';
+
+    applyTheme(savedTheme);
+    applyFontSize(savedFont);
+
+    document.querySelectorAll('[data-theme-value]').forEach((btn) => {
+      const isActive = btn.dataset.themeValue === savedTheme;
+      btn.setAttribute('aria-pressed', String(isActive));
+    });
+
+    document.querySelectorAll('[data-font-value]').forEach((btn) => {
+      const isActive = btn.dataset.fontValue === savedFont;
+      btn.setAttribute('aria-pressed', String(isActive));
+    });
+  }
+
+  function setupSettingsPanel() {
+    const toggleBtn = document.getElementById('settings-toggle');
+    const panel     = document.getElementById('settings-panel');
+    if (!toggleBtn || !panel) return;
+
+    toggleBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isHidden = panel.classList.contains('settings-panel--hidden');
+      panel.classList.toggle('settings-panel--hidden');
+      toggleBtn.setAttribute('aria-expanded', String(isHidden));
+    });
+
+    // Cierra el panel al hacer clic fuera
+    document.addEventListener('click', (e) => {
+      if (!panel.contains(e.target) && e.target !== toggleBtn) {
+        panel.classList.add('settings-panel--hidden');
+        toggleBtn.setAttribute('aria-expanded', 'false');
+      }
+    });
+
+    // Cierra el panel con Escape
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        panel.classList.add('settings-panel--hidden');
+        toggleBtn.setAttribute('aria-expanded', 'false');
+      }
+    });
+
+    document.querySelectorAll('[data-theme-value]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const value = btn.dataset.themeValue;
+        localStorage.setItem(STORAGE_THEME_KEY, value);
+        applyTheme(value);
+
+        document.querySelectorAll('[data-theme-value]').forEach((b) => {
+          b.setAttribute('aria-pressed', String(b === btn));
+        });
+      });
+    });
+
+    document.querySelectorAll('[data-font-value]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const value = btn.dataset.fontValue;
+        localStorage.setItem(STORAGE_FONT_KEY, value);
+        applyFontSize(value);
+
+        document.querySelectorAll('[data-font-value]').forEach((b) => {
+          b.setAttribute('aria-pressed', String(b === btn));
+        });
+      });
+    });
+  }
+
+  // Aplica el tema inmediatamente para evitar parpadeos (FOUC)
+  initSettings();
+
+  document.addEventListener('DOMContentLoaded', setupSettingsPanel);
+
+  // Escucha cambios en las preferencias del sistema si "system" está activo
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+    const pref = localStorage.getItem(STORAGE_THEME_KEY) || 'light';
+    if (pref === 'system') applyTheme('system');
+  });
+</script>
