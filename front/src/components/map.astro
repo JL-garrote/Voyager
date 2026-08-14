@@ -1440,7 +1440,7 @@ window.__initVoyagerMap = function () {
             new CustomEvent('voyager:distance-updated', { detail: { totalKm } })
           );
 
-          fetch('http://localhost:8080/api/trips/saveTrip', {
+          fetch('https://demo-athf.onrender.com/api/trips/saveTrip', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ totalKm: parseFloat(totalKm) }),
@@ -1507,7 +1507,7 @@ window.__initVoyagerMap = function () {
     carSaveStatus.classList.remove('car-save-status--hidden', 'car-save-status--error');
     carSaveStatus.textContent = 'Guardando...';
 
-    fetch('http://localhost:8080/api/coche/guardarCoche', {
+    fetch('https://demo-athf.onrender.com/api/coche/guardarCoche', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(carData),
@@ -1587,7 +1587,7 @@ window.__initVoyagerMap = function () {
     // El backend usa el último coche y el último viaje guardados
     // internamente (no hace falta enviar body). Al ser GET, fetch no
     // admite 'body' en la petición.
-    fetch('http://localhost:8080/api/coche/respuestaIA', {
+    fetch('https://demo-athf.onrender.com/api/coche/respuestaIA', {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' },
     })
