@@ -57,6 +57,7 @@
   --color-on-surface-variant:         #3f484b;
   --color-on-tertiary-fixed:          #251a00;
   --color-secondary-container:        #ffab69;
+  --color-success:                    #1a7d3c;
 
   /* ── Border radius ───────────────────────────────────────────── */
   --radius:      0.25rem; /* clase: rounded */
@@ -119,15 +120,28 @@
     <h1 class="text-display-lg font-bold tracking-tight">...</h1>
 */
 
-/* ═══ Tema oscuro ═════════════════════════════════════════════════
-   Se activa poniendo data-theme="dark" en <html> (lo hace el script
-   del panel de ajustes en Header.astro). Sobreescribimos las mismas
-   variables --color-* definidas arriba en @theme; como son variables
-   CSS normales, cualquier componente que las use (con var(--color-x)
-   o con las clases utilitarias bg-*/text-*/border-* de Tailwind)
-   cambia de aspecto automáticamente, sin tocar su propio CSS.
+/* ═══ Tema ════════════════════════════════════════════════════════
+   El atributo data-theme de <html> lo pone el script inline de
+   Layout.astro (antes del primer pintado) y lo cambia el botón del
+   Header. color-scheme hace que los controles nativos del navegador
+   (scrollbars, selects, autocompletado) sigan también el tema.
+*/
+:root {
+  color-scheme: light;
+}
+
+/* ── Tema oscuro ──────────────────────────────────────────────────
+   Sobreescribimos las mismas variables --color-... definidas arriba en
+   @theme; como son variables CSS normales, cualquier componente que
+   las use (con var(--color-x) o con las clases utilitarias de Tailwind
+   tipo bg-primary o text-on-surface) cambia de aspecto automáticamente,
+   sin tocar su propio CSS.
+
+   OJO: nunca escribas "bg-*" seguido de "/" dentro de un comentario CSS:
+   la secuencia cierra el comentario y rompe la regla siguiente.
 */
 html[data-theme="dark"] {
+  color-scheme: dark;
   --color-on-secondary-container:     #ffdcc4;
   --color-primary-container:          #004e5d;
   --color-tertiary-fixed:             #ffdf96;
@@ -175,24 +189,8 @@ html[data-theme="dark"] {
   --color-on-surface-variant:         #b7cdd3;
   --color-on-tertiary-fixed:          #251a00;
   --color-secondary-container:        #6f3800;
+  --color-success:                    #7ddba0;
 }
-
-/*
-  ── Tamaño de texto ─────────────────────────────────────────────
-  Controlado por data-font-size en <html> (A- / A / A+ del panel de
-  ajustes). --app-font-scale es un multiplicador que usamos junto a
-  calc() en los tamaños de fuente propios de cada componente
-  (ej: font-size: calc(14px * var(--app-font-scale));), y también
-  escala el tamaño base del body para que cualquier texto sin tamaño
-  explícito (que herede del body) responda igualmente.
-*/
-:root {
-  --app-font-scale: 1;
-}
-
-html[data-font-size="sm"] { --app-font-scale: 0.875; }
-html[data-font-size="md"] { --app-font-scale: 1;     }
-html[data-font-size="lg"] { --app-font-scale: 1.125;  }
 
 /* ═══ Estilos globales del layout ════════════════════════════════ */
 *, *::before, *::after { box-sizing: border-box; }
@@ -208,7 +206,7 @@ body {
   color: var(--color-on-background);
   overflow-x: hidden;
   font-family: 'Inter', sans-serif;
-  font-size: calc(16px * var(--app-font-scale));
+  font-size: 16px;
   line-height: 1.5;
   transition: background-color 0.2s ease, color 0.2s ease;
 }

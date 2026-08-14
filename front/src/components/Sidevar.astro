@@ -54,8 +54,9 @@ const navItems: NavItem[] = [
     height: 100%;
     width: 280px;
     z-index: 40;
-    background-color: #f3faff;
-    border-right: 1px solid rgba(191, 200, 203, 0.3);
+    background-color: var(--color-background);
+    border-right: 1px solid var(--color-outline-variant);
+    transition: background-color 0.2s, border-color 0.2s;
     display: flex;
     flex-direction: column;
     padding: 8px 16px;
@@ -73,7 +74,7 @@ const navItems: NavItem[] = [
     font-size: 24px;
     font-weight: 600;
     line-height: 1.4;
-    color: #004451;
+    color: var(--color-primary);
     margin: 0 0 0.25rem;
   }
 
@@ -81,7 +82,7 @@ const navItems: NavItem[] = [
     font-family: 'Inter', sans-serif;
     font-size: 14px;
     font-weight: 500;
-    color: #3f484b;
+    color: var(--color-on-surface-variant);
     opacity: 0.7;
     margin: 0;
   }
@@ -101,17 +102,17 @@ const navItems: NavItem[] = [
     padding: 0.75rem 1rem;
     border-radius: 0.75rem;
     text-decoration: none;
-    color: #3f484b;
+    color: var(--color-on-surface-variant);
     transition: background-color 0.2s, color 0.2s, transform 0.15s;
   }
 
   .sidenav__item:hover {
-    background-color: #ccedfe;
+    background-color: var(--color-surface-container-high);
   }
 
   .sidenav__item--active {
-    color: #004451;
-    background-color: rgba(0, 93, 110, 0.1);
+    color: var(--color-primary);
+    background-color: color-mix(in srgb, var(--color-primary) 14%, transparent);
     font-weight: 700;
     transform: translateX(4px);
   }
@@ -132,8 +133,8 @@ const navItems: NavItem[] = [
   .sidenav__pro-card {
     margin-top: auto;
     padding: 1rem;
-    background-color: #005d6e;
-    color: #8fd4e7;
+    background-color: var(--color-primary-container);
+    color: var(--color-on-primary-container);
     border-radius: 1rem;
   }
 
@@ -151,13 +152,13 @@ const navItems: NavItem[] = [
     font-size: 14px;
     font-weight: 700;
     margin: 0 0 1rem;
-    color: #8fd4e7;
+    color: var(--color-on-primary-container);
   }
 
   .sidenav__pro-btn {
     width: 100%;
-    background-color: #8fd4e7;
-    color: #004451;
+    background-color: var(--color-on-primary-container);
+    color: var(--color-primary-container);
     border: none;
     border-radius: 0.5rem;
     padding: 0.5rem;

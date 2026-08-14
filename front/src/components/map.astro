@@ -236,7 +236,7 @@ const stopsJson = JSON.stringify(stops);
     position: relative;
     width: 100%;
     height: 100%;
-    background-color: #bedfef;
+    background-color: var(--color-surface-dim);
     overflow: hidden;
   }
 
@@ -262,11 +262,11 @@ const stopsJson = JSON.stringify(stops);
   }
 
   .map-zoom {
-    background: rgba(255,255,255,0.9);
+    background: color-mix(in srgb, var(--color-surface-container-lowest) 90%, transparent);
     backdrop-filter: blur(8px);
     transform: translateZ(0);
     will-change: transform;
-    border: 1px solid rgba(191,200,203,0.2);
+    border: 1px solid color-mix(in srgb, var(--color-outline-variant) 55%, transparent);
     border-radius: 12px;
     padding: 8px;
     display: flex;
@@ -282,12 +282,12 @@ const stopsJson = JSON.stringify(stops);
   }
 
   .map-zoom--active {
-    background-color: #004451;
+    background-color: var(--color-primary);
   }
 
   .map-zoom--active .map-zoom__btn,
   .map-zoom--active .material-symbols-outlined {
-    color: #ffffff;
+    color: var(--color-on-primary);
   }
 
   .map-zoom__btn {
@@ -299,15 +299,15 @@ const stopsJson = JSON.stringify(stops);
     border: none;
     border-radius: 8px;
     cursor: pointer;
-    color: #004451;
+    color: var(--color-primary);
     transition: background-color 0.2s;
   }
 
-  .map-zoom__btn:hover { background-color: #ccedfe; }
+  .map-zoom__btn:hover { background-color: var(--color-surface-container-high); }
 
   .map-zoom__divider {
     border: none;
-    border-top: 1px solid rgba(191,200,203,0.3);
+    border-top: 1px solid var(--color-outline-variant);
     margin: 0;
   }
 
@@ -316,11 +316,11 @@ const stopsJson = JSON.stringify(stops);
     top: 24px;
     right: 24px;
     z-index: 10;
-    background: rgba(255,255,255,0.9);
+    background: color-mix(in srgb, var(--color-surface-container-lowest) 90%, transparent);
     backdrop-filter: blur(8px);
     transform: translateZ(0);
     will-change: transform;
-    border: 1px solid rgba(191,200,203,0.2);
+    border: 1px solid color-mix(in srgb, var(--color-outline-variant) 55%, transparent);
     border-radius: 9999px;
     padding: 12px 24px;
     display: flex;
@@ -331,20 +331,20 @@ const stopsJson = JSON.stringify(stops);
   }
 
   .map-pill__day  { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
-  .map-pill__dot  { width: 12px; height: 12px; border-radius: 50%; background-color: #004451; flex-shrink: 0; }
+  .map-pill__dot  { width: 12px; height: 12px; border-radius: 50%; background-color: var(--color-primary); flex-shrink: 0; }
 
   .map-pill__label {
     font-family: 'Inter', sans-serif;
     font-size: 14px;
     font-weight: 700;
-    color: #001f29;
+    color: var(--color-on-surface);
     white-space: nowrap;
   }
 
   .map-pill__divider {
     width: 1px;
     height: 16px;
-    background-color: #bfc8cb;
+    background-color: var(--color-outline-variant);
     flex-shrink: 0;
   }
 
@@ -352,7 +352,7 @@ const stopsJson = JSON.stringify(stops);
     font-family: 'Inter', sans-serif;
     font-size: 14px;
     font-weight: 500;
-    color: #3f484b;
+    color: var(--color-on-surface-variant);
     margin: 0;
     white-space: nowrap;
     overflow: hidden;
@@ -376,17 +376,17 @@ const stopsJson = JSON.stringify(stops);
     display: flex;
     align-items: center;
     gap: 8px;
-    background: rgba(255,255,255,0.9);
+    background: color-mix(in srgb, var(--color-surface-container-lowest) 90%, transparent);
     backdrop-filter: blur(8px);
     transform: translateZ(0);
-    border: 1px solid rgba(191,200,203,0.2);
+    border: 1px solid color-mix(in srgb, var(--color-outline-variant) 55%, transparent);
     border-radius: 9999px;
     padding: 10px 16px;
     cursor: pointer;
     font-family: 'Inter', sans-serif;
     font-size: 14px;
     font-weight: 600;
-    color: #004451;
+    color: var(--color-primary);
     box-shadow: 0 2px 8px rgba(0,0,0,0.08);
     width: 100%;
   }
@@ -398,10 +398,10 @@ const stopsJson = JSON.stringify(stops);
 
   .route-search__panel {
     margin-top: 8px;
-    background: rgba(255,255,255,0.95);
+    background: color-mix(in srgb, var(--color-surface-container-lowest) 95%, transparent);
     backdrop-filter: blur(8px);
     transform: translateZ(0);
-    border: 1px solid rgba(191,200,203,0.2);
+    border: 1px solid color-mix(in srgb, var(--color-outline-variant) 55%, transparent);
     border-radius: 16px;
     padding: 16px;
     display: flex;
@@ -420,7 +420,7 @@ const stopsJson = JSON.stringify(stops);
     font-family: 'Inter', sans-serif;
     font-size: 12px;
     font-weight: 600;
-    color: #3f484b;
+    color: var(--color-on-surface-variant);
     width: 100%;
   }
 
@@ -428,17 +428,37 @@ const stopsJson = JSON.stringify(stops);
     font-family: 'Inter', sans-serif;
     font-size: 14px;
     padding: 8px 10px;
-    border: 1px solid #bfc8cb;
+    border: 1px solid var(--color-outline-variant);
+    background-color: var(--color-surface-container-lowest);
     border-radius: 8px;
-    color: #001f29;
+    color: var(--color-on-surface);
     width: 100%;
+    appearance: none;
+    -webkit-appearance: none;
+  }
+
+  /*
+    El autocompletado de direcciones de Chrome/Brave pinta su propio
+    fondo/color sobre el input (normalmente pensado para temas claros),
+    lo que en modo oscuro deja el campo prácticamente en blanco con solo
+    una línea visible. Forzamos aquí nuestros propios colores por encima
+    del autofill.
+  */
+  .route-search__input:-webkit-autofill,
+  .route-search__input:-webkit-autofill:hover,
+  .route-search__input:-webkit-autofill:focus {
+    -webkit-text-fill-color: var(--color-on-surface);
+    -webkit-box-shadow: 0 0 0 1000px var(--color-surface-container-lowest) inset;
+    box-shadow: 0 0 0 1000px var(--color-surface-container-lowest) inset;
+    caret-color: var(--color-on-surface);
+    transition: background-color 9999s ease-in-out 0s;
   }
 
   .route-search__submit {
     margin-top: 4px;
     padding: 10px;
-    background-color: #004451;
-    color: #ffffff;
+    background-color: var(--color-primary);
+    color: var(--color-on-primary);
     border: none;
     border-radius: 9999px;
     font-family: 'Inter', sans-serif;
@@ -447,7 +467,7 @@ const stopsJson = JSON.stringify(stops);
     cursor: pointer;
     width: 100%;
   }
-  .route-search__submit:hover { background-color: #005d6e; }
+  .route-search__submit:hover { opacity: 0.88; }
 
   .route-result {
     margin-top: 4px;
@@ -463,11 +483,11 @@ const stopsJson = JSON.stringify(stops);
     font-family: 'Inter', sans-serif;
     font-size: 14px;
     font-weight: 700;
-    color: #004451;
+    color: var(--color-primary);
   }
 
   .route-error {
-    color: #ba1a1a;
+    color: var(--color-error);
     font-size: 12px;
     margin: 0;
   }
@@ -495,7 +515,7 @@ const stopsJson = JSON.stringify(stops);
     width: 480px;
     max-width: 100%;
     max-height: calc(100vh - 48px);
-    background: #ffffff;
+    background: var(--color-surface-container-low);
     border-radius: 20px;
     box-shadow: 0 12px 40px rgba(0, 31, 41, 0.25);
     display: flex;
@@ -508,12 +528,12 @@ const stopsJson = JSON.stringify(stops);
     align-items: center;
     gap: 10px;
     padding: 20px 20px 16px;
-    border-bottom: 1px solid rgba(191,200,203,0.3);
+    border-bottom: 1px solid var(--color-outline-variant);
     flex-shrink: 0;
   }
 
   .ai-modal__icon {
-    color: #004451;
+    color: var(--color-primary);
   }
 
   .ai-modal__title {
@@ -522,7 +542,7 @@ const stopsJson = JSON.stringify(stops);
     font-family: 'Plus Jakarta Sans', sans-serif;
     font-size: 18px;
     font-weight: 700;
-    color: #004451;
+    color: var(--color-primary);
   }
 
   .ai-modal__close {
@@ -533,13 +553,15 @@ const stopsJson = JSON.stringify(stops);
     height: 32px;
     border-radius: 50%;
     border: none;
-    background: rgba(0,68,81,0.08);
-    color: #004451;
+    background: color-mix(in srgb, var(--color-primary) 10%, transparent);
+    color: var(--color-primary);
     cursor: pointer;
     transition: background-color 0.2s;
     flex-shrink: 0;
   }
-  .ai-modal__close:hover { background-color: rgba(0,68,81,0.18); }
+  .ai-modal__close:hover {
+    background-color: color-mix(in srgb, var(--color-primary) 22%, transparent);
+  }
 
   .ai-modal__body {
     padding: 20px;
@@ -552,7 +574,7 @@ const stopsJson = JSON.stringify(stops);
     align-items: center;
     gap: 8px;
     padding: 24px 0;
-    color: #3f484b;
+    color: var(--color-on-surface-variant);
     font-family: 'Inter', sans-serif;
     font-size: 14px;
   }
@@ -560,7 +582,7 @@ const stopsJson = JSON.stringify(stops);
 
   .ai-modal__spinner {
     animation: ai-modal-spin 1s linear infinite;
-    color: #004451;
+    color: var(--color-primary);
     font-size: 28px;
   }
 
@@ -573,7 +595,7 @@ const stopsJson = JSON.stringify(stops);
     font-family: 'Inter', sans-serif;
     font-size: 14px;
     line-height: 1.6;
-    color: #001f29;
+    color: var(--color-on-surface);
   }
 
   .ai-modal__content p {
@@ -584,18 +606,18 @@ const stopsJson = JSON.stringify(stops);
   }
 
   .ai-modal__content strong {
-    color: #004451;
+    color: var(--color-primary);
   }
 
   .car-save-status {
     font-family: 'Inter', sans-serif;
     font-size: 12px;
     font-weight: 600;
-    color: #1a7d3c;
+    color: var(--color-success);
     margin: 0;
   }
   .car-save-status--hidden { display: none; }
-  .car-save-status--error { color: #ba1a1a; }
+  .car-save-status--error { color: var(--color-error); }
 
   .car-panel {
     position: absolute;
@@ -614,18 +636,18 @@ const stopsJson = JSON.stringify(stops);
     display: flex;
     align-items: center;
     gap: 8px;
-    background: rgba(255,255,255,0.9);
+    background: color-mix(in srgb, var(--color-surface-container-lowest) 90%, transparent);
     backdrop-filter: blur(8px);
     transform: translateZ(0);
     will-change: transform;
-    border: 1px solid rgba(191,200,203,0.2);
+    border: 1px solid color-mix(in srgb, var(--color-outline-variant) 55%, transparent);
     border-radius: 9999px;
     padding: 10px 16px;
     cursor: pointer;
     font-family: 'Inter', sans-serif;
     font-size: 14px;
     font-weight: 600;
-    color: #004451;
+    color: var(--color-primary);
     box-shadow: 0 2px 8px rgba(0,0,0,0.08);
     width: 100%;
     flex-shrink: 0;
@@ -638,11 +660,11 @@ const stopsJson = JSON.stringify(stops);
 
   .car-panel__form {
     margin-top: 8px;
-    background: rgba(255,255,255,0.95);
+    background: color-mix(in srgb, var(--color-surface-container-lowest) 95%, transparent);
     backdrop-filter: blur(8px);
     transform: translateZ(0);
     will-change: transform;
-    border: 1px solid rgba(191,200,203,0.2);
+    border: 1px solid color-mix(in srgb, var(--color-outline-variant) 55%, transparent);
     border-radius: 16px;
     padding: 16px;
     display: flex;
@@ -675,7 +697,7 @@ const stopsJson = JSON.stringify(stops);
     font-family: 'Inter', sans-serif;
     font-size: 12px;
     font-weight: 600;
-    color: #3f484b;
+    color: var(--color-on-surface-variant);
     width: 100%;
     min-width: 0;
   }
@@ -686,13 +708,36 @@ const stopsJson = JSON.stringify(stops);
     font-family: 'Inter', sans-serif;
     font-size: 14px;
     font-weight: 400;
-    color: #001f29;
+    color: var(--color-on-surface);
     padding: 8px 10px;
-    border: 1px solid #bfc8cb;
+    border: 1px solid var(--color-outline-variant);
+    background-color: var(--color-surface-container-lowest);
     border-radius: 8px;
     resize: vertical;
     width: 100%;
     min-width: 0;
+  }
+
+  /*
+    Solo en input/textarea: quitamos el "appearance" nativo para que no
+    compita con nuestros colores. El <select> se deja con su apariencia
+    nativa a propósito, para no perder la flechita del desplegable.
+  */
+  .car-panel__label input,
+  .car-panel__label textarea {
+    appearance: none;
+    -webkit-appearance: none;
+  }
+
+  /* Mismo problema de autofill que en .route-search__input (marca, modelo...). */
+  .car-panel__label input:-webkit-autofill,
+  .car-panel__label input:-webkit-autofill:hover,
+  .car-panel__label input:-webkit-autofill:focus {
+    -webkit-text-fill-color: var(--color-on-surface);
+    -webkit-box-shadow: 0 0 0 1000px var(--color-surface-container-lowest) inset;
+    box-shadow: 0 0 0 1000px var(--color-surface-container-lowest) inset;
+    caret-color: var(--color-on-surface);
+    transition: background-color 9999s ease-in-out 0s;
   }
 
   .car-panel__label select {
@@ -702,8 +747,8 @@ const stopsJson = JSON.stringify(stops);
   .car-panel__submit {
     margin-top: 4px;
     padding: 10px;
-    background-color: #004451;
-    color: #ffffff;
+    background-color: var(--color-primary);
+    color: var(--color-on-primary);
     border: none;
     border-radius: 9999px;
     font-family: 'Inter', sans-serif;
@@ -713,15 +758,15 @@ const stopsJson = JSON.stringify(stops);
     width: 100%;
     flex-shrink: 0;
   }
-  .car-panel__submit:hover { background-color: #005d6e; }
+  .car-panel__submit:hover { opacity: 0.88; }
 
   .car-panel__submit--secondary {
     background-color: transparent;
-    color: #004451;
-    border: 1px solid #004451;
+    color: var(--color-primary);
+    border: 1px solid var(--color-primary);
   }
   .car-panel__submit--secondary:hover {
-    background-color: #ccedfe;
+    background-color: var(--color-surface-container-high);
   }
 
   .marker-card {
@@ -732,9 +777,9 @@ const stopsJson = JSON.stringify(stops);
     will-change: transform;
     width: 400px;
     max-width: calc(100% - 48px);
-    background: rgba(243,250,255,0.85);
+    background: color-mix(in srgb, var(--color-background) 88%, transparent);
     backdrop-filter: blur(20px);
-    border: 1px solid rgba(255,255,255,0.4);
+    border: 1px solid color-mix(in srgb, var(--color-outline-variant) 45%, transparent);
     border-radius: 24px;
     padding: 24px;
     box-shadow: 0 8px 32px rgba(0,93,110,0.12);
@@ -756,7 +801,7 @@ const stopsJson = JSON.stringify(stops);
     border-radius: 16px;
     overflow: hidden;
     flex-shrink: 0;
-    background-color: #d8f2ff;
+    background-color: var(--color-surface-container);
   }
 
   .marker-card__img {
@@ -778,7 +823,7 @@ const stopsJson = JSON.stringify(stops);
     font-family: 'Plus Jakarta Sans', sans-serif;
     font-size: 16px;
     font-weight: 700;
-    color: #004451;
+    color: var(--color-primary);
     margin: 0 0 4px;
   }
 
@@ -786,7 +831,7 @@ const stopsJson = JSON.stringify(stops);
     font-family: 'Inter', sans-serif;
     font-size: 12px;
     font-weight: 600;
-    color: #3f484b;
+    color: var(--color-on-surface-variant);
     display: flex;
     align-items: center;
     gap: 4px;
@@ -802,15 +847,15 @@ const stopsJson = JSON.stringify(stops);
     border-radius: 50%;
     border: none;
     cursor: pointer;
-    background-color: rgba(0,68,81,0.1);
-    color: #004451;
+    background-color: color-mix(in srgb, var(--color-primary) 12%, transparent);
+    color: var(--color-primary);
     transition: background-color 0.2s, color 0.2s;
     flex-shrink: 0;
   }
 
   .marker-card__dir-btn:hover {
-    background-color: #004451;
-    color: #ffffff;
+    background-color: var(--color-primary);
+    color: var(--color-on-primary);
   }
 
   .marker-card__tags {
@@ -821,8 +866,8 @@ const stopsJson = JSON.stringify(stops);
   }
 
   .marker-card__tag {
-    background-color: #ccedfe;
-    color: #001f29;
+    background-color: var(--color-surface-container-high);
+    color: var(--color-on-surface);
     font-family: 'Inter', sans-serif;
     font-size: 12px;
     font-weight: 600;
@@ -865,14 +910,6 @@ const stopsJson = JSON.stringify(stops);
 
 <script define:vars={{ apiKey, geoapifyApiKey, stopsJson, stops }}>
 
-const ICON_MAP = {
-  flight:     { color: '#004451', symbol: 'flight' },
-  hotel:      { color: '#004451', symbol: 'hotel' },
-  restaurant: { color: '#004451', symbol: 'restaurant' },
-  tour:       { color: '#004451', symbol: 'tour' },
-  default:    { color: '#004451', symbol: 'place' },
-};
-
 // Km totales de la ruta activa (se actualiza tanto con la ruta de "stops"
 // como con la búsqueda manual de origen/destino).
 let currentTotalKm = null;
@@ -882,10 +919,66 @@ window.addEventListener('voyager:distance-updated', (e) => {
   if (!Number.isNaN(value)) currentTotalKm = value;
 });
 
-function makePinSvg(symbol) {
+// ── Tema del mapa ───────────────────────────────────────────────────
+// El mapa de Google se pinta en canvas, así que no hereda el CSS: hay
+// que darle su propio juego de estilos y volver a aplicarlo cuando el
+// usuario cambia de tema con el botón del header.
+const MAP_STYLES_LIGHT = [
+  { elementType: 'geometry',         stylers: [{ color: '#dff4ff' }] },
+  { elementType: 'labels.text.fill', stylers: [{ color: '#3f484b' }] },
+  { elementType: 'labels.text.stroke', stylers: [{ color: '#f3faff' }] },
+  { elementType: 'labels.icon',      stylers: [{ visibility: 'off' }] },
+  { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#bedfef' }] },
+  { featureType: 'water', elementType: 'geometry.stroke', stylers: [{ visibility: 'off' }] },
+  { featureType: 'road',  elementType: 'geometry', stylers: [{ color: '#ffffff' }] },
+  { featureType: 'road',  elementType: 'geometry.stroke', stylers: [{ color: '#c6e8f8' }] },
+];
+
+const MAP_STYLES_DARK = [
+  { elementType: 'geometry',         stylers: [{ color: '#0b232a' }] },
+  { elementType: 'labels.text.fill', stylers: [{ color: '#b7cdd3' }] },
+  { elementType: 'labels.text.stroke', stylers: [{ color: '#04141a' }] },
+  { elementType: 'labels.icon',      stylers: [{ visibility: 'off' }] },
+  { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#04141a' }] },
+  { featureType: 'water', elementType: 'geometry.stroke', stylers: [{ visibility: 'off' }] },
+  { featureType: 'road',  elementType: 'geometry', stylers: [{ color: '#15343d' }] },
+  { featureType: 'road',  elementType: 'geometry.stroke', stylers: [{ color: '#1b3f49' }] },
+];
+
+// Elementos que ocultamos siempre, en los dos temas.
+const MAP_STYLES_COMMON = [
+  { featureType: 'poi',     stylers: [{ visibility: 'off' }] },
+  { featureType: 'transit', stylers: [{ visibility: 'off' }] },
+  { featureType: 'transit.line',                elementType: 'geometry', stylers: [{ visibility: 'off' }] },
+  { featureType: 'administrative',              elementType: 'geometry', stylers: [{ visibility: 'off' }] },
+  { featureType: 'administrative.land_parcel',  stylers: [{ visibility: 'off' }] },
+  { featureType: 'administrative.neighborhood', stylers: [{ visibility: 'off' }] },
+  { featureType: 'administrative.province',     elementType: 'geometry.stroke', stylers: [{ visibility: 'off' }] },
+];
+
+function isDarkTheme() {
+  return document.documentElement.getAttribute('data-theme') === 'dark';
+}
+
+function mapStylesForTheme() {
+  return [...(isDarkTheme() ? MAP_STYLES_DARK : MAP_STYLES_LIGHT), ...MAP_STYLES_COMMON];
+}
+
+// Lee un token de color del tema activo (definido en global.css) para
+// poder usarlo en cosas que se dibujan con JS: pines, rutas, etc.
+function themeColor(token, fallback) {
+  const value = getComputedStyle(document.documentElement)
+    .getPropertyValue(token)
+    .trim();
+  return value || fallback;
+}
+
+function makePinSvg() {
+  const fill   = themeColor('--color-primary', '#004451');
+  const stroke = themeColor('--color-on-primary', '#ffffff');
   return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
     <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40">
-      <circle cx="20" cy="20" r="18" fill="#004451" stroke="white" stroke-width="3"/>
+      <circle cx="20" cy="20" r="18" fill="${fill}" stroke="${stroke}" stroke-width="3"/>
     </svg>
   `)}`;
 }
@@ -940,22 +1033,7 @@ window.__initVoyagerMap = function () {
     disableDefaultUI: true,
     gestureHandling: 'greedy',
     renderingType: google.maps.RenderingType.RASTER,
-    styles: [
-      { elementType: 'geometry',        stylers: [{ color: '#dff4ff' }] },
-      { elementType: 'labels.text.fill',stylers: [{ color: '#3f484b' }] },
-      { elementType: 'labels.icon',     stylers: [{ visibility: 'off' }] },
-      { featureType: 'water',           elementType: 'geometry', stylers: [{ color: '#bedfef' }] },
-      { featureType: 'water',           elementType: 'geometry.stroke', stylers: [{ visibility: 'off' }] },
-      { featureType: 'road',            elementType: 'geometry', stylers: [{ color: '#ffffff' }] },
-      { featureType: 'road',            elementType: 'geometry.stroke', stylers: [{ color: '#c6e8f8' }] },
-      { featureType: 'poi',             stylers: [{ visibility: 'off' }] },
-      { featureType: 'transit',         stylers: [{ visibility: 'off' }] },
-      { featureType: 'transit.line',              elementType: 'geometry', stylers: [{ visibility: 'off' }] },
-      { featureType: 'administrative',             elementType: 'geometry', stylers: [{ visibility: 'off' }] },
-      { featureType: 'administrative.land_parcel', stylers: [{ visibility: 'off' }] },
-      { featureType: 'administrative.neighborhood',stylers: [{ visibility: 'off' }] },
-      { featureType: 'administrative.province',    elementType: 'geometry.stroke', stylers: [{ visibility: 'off' }] },
-    ],
+    styles: mapStylesForTheme(),
   });
 
   const fixMapSeams = () => {
@@ -982,28 +1060,46 @@ window.__initVoyagerMap = function () {
     window.addEventListener('resize', fixMapSeams);
   }
 
+  function stopIcon() {
+    return {
+      url: makePinSvg(),
+      scaledSize: new google.maps.Size(40, 40),
+      anchor: new google.maps.Point(20, 20),
+    };
+  }
+
+  function stopLabel(idx) {
+    return {
+      text: String(idx + 1),
+      color: themeColor('--color-on-primary', '#ffffff'),
+      fontSize: '13px',
+      fontWeight: '700',
+      fontFamily: 'Inter, sans-serif',
+    };
+  }
+
   const markers = parsedStops.map((stop, idx) => {
     const marker = new google.maps.Marker({
       position: { lat: stop.lat, lng: stop.lng },
       map,
       title: stop.label,
-      icon: {
-        url: makePinSvg(ICON_MAP[stop.icon]?.symbol ?? 'place'),
-        scaledSize: new google.maps.Size(40, 40),
-        anchor: new google.maps.Point(20, 20),
-      },
-      label: {
-        text: String(idx + 1),
-        color: '#ffffff',
-        fontSize: '13px',
-        fontWeight: '700',
-        fontFamily: 'Inter, sans-serif',
-      },
+      icon: stopIcon(),
+      label: stopLabel(idx),
       animation: google.maps.Animation.DROP,
     });
 
     marker.addListener('click', () => showCard(stop));
     return marker;
+  });
+
+  // Al cambiar el tema (botón del header) repintamos lo que no depende
+  // del CSS: los estilos del mapa y los pines de las paradas.
+  window.addEventListener('voyager:theme-changed', () => {
+    map.setOptions({ styles: mapStylesForTheme() });
+    markers.forEach((marker, idx) => {
+      marker.setIcon(stopIcon());
+      marker.setLabel(stopLabel(idx));
+    });
   });
 
   if (parsedStops.length >= 2) {
@@ -1012,7 +1108,7 @@ window.__initVoyagerMap = function () {
       map,
       suppressMarkers: true,
       polylineOptions: {
-        strokeColor:   '#005d6e',
+        strokeColor:   themeColor('--color-primary', '#005d6e'),
         strokeOpacity: 0.7,
         strokeWeight:  4,
       },
@@ -1137,16 +1233,15 @@ window.__initVoyagerMap = function () {
     const lon = currentDestination.lng;
     const radius = 5000; // 5 km alrededor del destino
 
-    // accommodation.hotel = hoteles;
-    // añadimos el resto de la categoría "accommodation" para no dejar
-    // fuera hostales, apartamentos turísticos, B&B, etc.
-    const categories = [
-      'accommodation.hotel',
-      'accommodation.hostel',
-      'accommodation.apartment',
-      'accommodation.guest_house',
-      'accommodation.motel',
-    ].join(',');
+    // "accommodation" es la categoría padre en Geoapify e incluye ya
+    // hoteles, hostales, apartamentos turísticos, guest houses, moteles,
+    // etc. Antes se pedía una lista separada por comas de subcategorías
+    // (accommodation.hotel,accommodation.hostel,...), pero la API de
+    // Geoapify la rechaza con 400 "Category ... is not supported" en
+    // cuanto hay más de una categoría en la lista (comprobado también
+    // con "|" y con categorías duplicadas) — por eso el botón no
+    // mostraba nunca ningún hotel.
+    const categories = 'accommodation';
 
     const url = new URL('https://api.geoapify.com/v2/places');
     url.searchParams.set('categories', categories);
@@ -1241,6 +1336,11 @@ window.__initVoyagerMap = function () {
     } catch (err) {
       console.error('Error obteniendo hoteles de Geoapify:', err);
       hotelToggleBtn.classList.remove('map-zoom--active');
+
+      routeError.textContent = 'No se pudieron cargar los alojamientos. Inténtalo de nuevo en unos segundos.';
+      routeError.classList.remove('route-error--hidden');
+      routePanel.classList.remove('route-search__panel--hidden');
+      routeChevron.classList.add('route-search__chevron--open');
     } finally {
       hotelsLoading = false;
     }
@@ -1275,7 +1375,7 @@ window.__initVoyagerMap = function () {
     map,
     suppressMarkers: false,
     polylineOptions: {
-      strokeColor:   '#8e4e14',
+      strokeColor:   themeColor('--color-secondary', '#8e4e14'),
       strokeOpacity: 0.9,
       strokeWeight:  5,
     },
